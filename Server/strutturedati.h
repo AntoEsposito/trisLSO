@@ -18,7 +18,7 @@ enum stato_giocatore
     IN_PARTITA
 };
 
-struct giocatore
+struct nodo_giocatore
 {
     char nome[MAXPLAYER];
     enum stato_giocatore stato;
@@ -26,15 +26,15 @@ struct giocatore
     unsigned int sconfitte;
     unsigned int pareggi;
     pthread_t tid_giocatore;
-    struct giocatore *next_node;
+    struct nodo_giocatore* next_node;
 };
-struct partita
+struct nodo_partita
 {
     char proprietario[MAXPLAYER];
     enum stato_partita stato;
     char giocatori[2][MAXPLAYER]; //array che contiene 2 stringhe giocatori
     pthread_t tid_partita;
-    struct partita *next_node;
+    struct nodo_partita* next_node;
 };
 
 

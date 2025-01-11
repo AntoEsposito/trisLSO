@@ -1,6 +1,102 @@
 #include "lso.h"
 
-int inizializza_server()
+struct nodo_partita* crea_partita()
+{
+    struct nodo_partita *nodo = (struct nodo_partita *) malloc(sizeof(struct nodo_partita));
+    if (nodo == NULL)
+    {
+        perror("errore creazione partita");
+        return NULL;
+    }
+    memset(nodo, 0, sizeof(struct nodo_partita)); //pulisce la struct per sicurezza
+    nodo -> next_node = NULL;
+    return nodo;
+}
+struct nodo_partita* inizializza_partite()
+{
+    struct nodo_partita *testa = crea_partita();
+    testa -> stato = -1; //valore speciale che serve a distinguere la testa dagli altri nodi
+    return testa;
+}
+struct nodo_partita* aggiungi_partita(struct nodo_partita *testa, struct nodo_partita *nodo)
+{
+    if (testa != NULL && nodo != NULL)
+    {
+        struct nodo_partita *tmp = testa;
+        while (tmp -> next_node != NULL) 
+        {
+            tmp = tmp -> next_node;
+        }
+        tmp -> next_node = nodo;
+    }
+    return testa;
+}
+struct nodo_partita* cancella_partita(struct nodo_partita *testa, struct nodo_partita *nodo)
+{
+    if (testa != NULL && nodo != NULL)
+    {
+        struct nodo_partita *tmp = testa;
+        while (tmp -> next_node != nodo)
+        {
+            tmp = tmp -> next_node;
+        }
+        tmp -> next_node = nodo -> next_node;
+
+        free(nodo);
+    }
+    return testa;
+}
+
+
+struct nodo_giocatore* crea_giocatore()
+{
+    struct nodo_giocatore *nodo = (struct nodo_giocatore *) malloc(sizeof(struct nodo_giocatore));
+    if (nodo == NULL)
+    {
+        perror("errore creazione giocatore");
+        return NULL;
+    }
+    memset(nodo, 0, sizeof(struct nodo_giocatore)); //pulisce la struct per sicurezza
+    nodo -> next_node = NULL;
+    return nodo;
+}
+struct nodo_giocatore* inizializza_giocatori()
+{
+    struct nodo_giocatore *testa = crea_giocatore();
+    strcpy(testa->nome, "server");
+    testa -> stato = -1; //valore speciale che serve a distinguere la testa dagli altri nodi
+    return testa;
+}
+struct nodo_giocatore* aggiungi_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo)
+{
+    if (testa != NULL && nodo != NULL)
+    {
+        struct nodo_giocatore *tmp = testa;
+        while (tmp -> next_node != NULL) 
+        {
+            tmp = tmp -> next_node;
+        }
+        tmp -> next_node = nodo;
+    }
+    return testa;
+}
+struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo)
+{
+    if (testa != NULL && nodo != NULL)
+    {
+        struct nodo_giocatore *tmp = testa;
+        while (tmp -> next_node != nodo)
+        {
+            tmp = tmp -> next_node;
+        }
+        tmp -> next_node = nodo -> next_node;
+
+        free(nodo);
+    }
+    return testa;
+}
+
+int inizializza_server() //creala socket, si mette in ascolto e restituisce il socket descriptor
 {
     int sd;
     struct sockaddr_in address;
