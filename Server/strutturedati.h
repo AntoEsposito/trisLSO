@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 
-#define MAXPLAYER 32
+#define MAXPLAYER 32 //il nome di un player può essere lungo massimo 31 caratteri
 
 enum stato_partita
 {
@@ -26,6 +26,7 @@ struct giocatore
     unsigned int sconfitte;
     unsigned int pareggi;
     pthread_t tid_giocatore;
+    struct giocatore *next_node;
 };
 struct partita
 {
@@ -33,6 +34,7 @@ struct partita
     enum stato_partita stato;
     char giocatori[2][MAXPLAYER]; //array che contiene 2 stringhe giocatori
     pthread_t tid_partita;
+    struct partita *next_node;
 };
 
 
