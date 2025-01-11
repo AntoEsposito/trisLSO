@@ -3,7 +3,7 @@
 //liste che saranno gestite dai thread
 const struct nodo_partita *lista_partite; 
 const struct nodo_giocatore *lista_giocatori;
-//la testa delle liste rimane sempre invariata e non viene cancellata fino alla fine del processo
+//la testa delle liste è allocata staticamente, rimane sempre invariata e non viene cancellata per tutto il processo
 
 int main()
 {

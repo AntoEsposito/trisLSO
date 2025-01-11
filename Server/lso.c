@@ -14,8 +14,12 @@ struct nodo_partita* crea_partita()
 }
 struct nodo_partita* inizializza_partite()
 {
-    struct nodo_partita *testa = crea_partita();
+    struct nodo_partita *testa;
+
+    memset(testa, 0, sizeof(struct nodo_partita));
     testa -> stato = -1; //valore speciale che serve a distinguere la testa dagli altri nodi
+    testa -> next_node = NULL;
+
     return testa;
 }
 struct nodo_partita* aggiungi_partita(struct nodo_partita *testa, struct nodo_partita *nodo)
@@ -62,9 +66,13 @@ struct nodo_giocatore* crea_giocatore()
 }
 struct nodo_giocatore* inizializza_giocatori()
 {
-    struct nodo_giocatore *testa = crea_giocatore();
+    struct nodo_giocatore *testa;
+    memset(testa, 0, sizeof(struct nodo_giocatore));
+
     strcpy(testa->nome, "server");
     testa -> stato = -1; //valore speciale che serve a distinguere la testa dagli altri nodi
+    testa -> next_node = NULL;
+
     return testa;
 }
 struct nodo_giocatore* aggiungi_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo)
