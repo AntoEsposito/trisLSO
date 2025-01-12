@@ -16,13 +16,12 @@
 int inizializza_server();
 
 struct nodo_partita* crea_partita();
-struct nodo_partita* inizializza_partite();
 struct nodo_partita* aggiungi_partita(struct nodo_partita *testa, struct nodo_partita *nodo);
 struct nodo_partita* cancella_partita(struct nodo_partita *testa, struct nodo_partita *nodo);
 
 struct nodo_giocatore* crea_giocatore();
-struct nodo_giocatore* inizializza_giocatori();
-struct nodo_giocatore* aggiungi_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo);
+void registra_giocatore(const struct nodo_giocatore *nodo, const int client_sd);
+void aggiungi_giocatore(struct nodo_giocatore *testa, const int client_sd);
 struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo);
 
 

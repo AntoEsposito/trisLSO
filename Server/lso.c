@@ -12,19 +12,9 @@ struct nodo_partita* crea_partita()
     nodo -> next_node = NULL;
     return nodo;
 }
-struct nodo_partita* inizializza_partite()
-{
-    struct nodo_partita *testa;
-
-    memset(testa, 0, sizeof(struct nodo_partita));
-    testa -> stato = -1; //valore speciale che serve a distinguere la testa dagli altri nodi
-    testa -> next_node = NULL;
-
-    return testa;
-}
 struct nodo_partita* aggiungi_partita(struct nodo_partita *testa, struct nodo_partita *nodo)
 {
-    if (testa != NULL && nodo != NULL)
+    if (nodo != NULL)
     {
         struct nodo_partita *tmp = testa;
         while (tmp -> next_node != NULL) 
@@ -64,47 +54,44 @@ struct nodo_giocatore* crea_giocatore()
     nodo -> next_node = NULL;
     return nodo;
 }
-struct nodo_giocatore* inizializza_giocatori()
+void aggiungi_giocatore(struct nodo_giocatore *testa, const int client_sd)
 {
-    struct nodo_giocatore *testa;
-    memset(testa, 0, sizeof(struct nodo_giocatore));
-
-    strcpy(testa->nome, "server");
-    testa -> stato = -1; //valore speciale che serve a distinguere la testa dagli altri nodi
-    testa -> next_node = NULL;
-
-    return testa;
-}
-struct nodo_giocatore* aggiungi_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo)
-{
-    if (testa != NULL && nodo != NULL)
+    if (testa == NULL)
     {
+        registra_giocatore(testa, client_sd);
+    }
+    else
+    {
+        struct nodo_giocatore *nuovo_giocatore = crea_giocatore();
         struct nodo_giocatore *tmp = testa;
-        while (tmp -> next_node != NULL) 
+        while(tmp -> next_node != NULL)
         {
             tmp = tmp -> next_node;
         }
-        tmp -> next_node = nodo;
+        tmp -> next_node = nuovo_giocatore;
+        registra_giocatore(nuovo_giocatore, client_sd);
     }
-    return testa;
 }
 struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo)
 {
-    if (testa != NULL && nodo != NULL)
+    if (nodo != NULL && strcmp(testa -> nome, nodo -> nome )==0) //significa che si sta cercando di cancellare la testa
+    {
+        testa = NULL;
+    }
+    else if (nodo != NULL)
     {
         struct nodo_giocatore *tmp = testa;
-        while (tmp -> next_node != nodo)
+        while(tmp -> next_node != nodo)
         {
             tmp = tmp -> next_node;
         }
         tmp -> next_node = nodo -> next_node;
-
         free(nodo);
     }
     return testa;
 }
 
-int inizializza_server() //creala socket, si mette in ascolto e restituisce il socket descriptor
+int inizializza_server() //crea la socket, si mette in ascolto e restituisce il socket descriptor
 {
     int sd;
     struct sockaddr_in address;
