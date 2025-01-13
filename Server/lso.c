@@ -1,46 +1,5 @@
 #include "lso.h"
 
-struct nodo_partita* crea_partita()
-{
-    struct nodo_partita *nodo = (struct nodo_partita *) malloc(sizeof(struct nodo_partita));
-    if (nodo == NULL)
-    {
-        perror("errore creazione partita");
-        return NULL;
-    }
-    memset(nodo, 0, sizeof(struct nodo_partita)); //pulisce la struct per sicurezza
-    nodo -> next_node = NULL;
-    return nodo;
-}
-struct nodo_partita* aggiungi_partita(struct nodo_partita *testa, struct nodo_partita *nodo)
-{
-    if (nodo != NULL)
-    {
-        struct nodo_partita *tmp = testa;
-        while (tmp -> next_node != NULL) 
-        {
-            tmp = tmp -> next_node;
-        }
-        tmp -> next_node = nodo;
-    }
-    return testa;
-}
-struct nodo_partita* cancella_partita(struct nodo_partita *testa, struct nodo_partita *nodo)
-{
-    if (testa != NULL && nodo != NULL)
-    {
-        struct nodo_partita *tmp = testa;
-        while (tmp -> next_node != nodo)
-        {
-            tmp = tmp -> next_node;
-        }
-        tmp -> next_node = nodo -> next_node;
-
-        free(nodo);
-    }
-    return testa;
-}
-
 
 struct nodo_giocatore* crea_giocatore()
 {
@@ -54,11 +13,70 @@ struct nodo_giocatore* crea_giocatore()
     nodo -> next_node = NULL;
     return nodo;
 }
+bool esiste_giocatore(struct nodo_giocatore *testa, const char *giocatore)
+{
+    if (testa != NULL)
+    {
+        struct nodo_giocatore *tmp = testa;
+        while (tmp -> next_node != NULL)
+        {
+            if ((strcmp(tmp -> nome, giocatore)) == 0) return true;
+            tmp = tmp -> next_node;
+        }
+    }
+    return false;
+}
+void registra_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo, const int client_sd)
+{
+    char giocatore[MAXPLAYER];
+    memset(giocatore, 0, MAXPLAYER);
+    int n_byte;
+
+    if (send(client_sd, "Benvenuto, inserisci il tuo nome per registrarti (max 15 caratteri)\n", 69, 0) <= 0)
+    {
+        perror("errore invio messaggio");
+        close(client_sd);
+        pthread_exit(NULL);
+    }
+    while(true)
+    {
+        if ((n_byte = recv(client_sd, giocatore, MAXPLAYER, 0)) <= 0 ) //si occupa il client di verificare che i caratteri inviati siano al massimo 15
+        {
+            perror("errore ricezione messaggio");
+            close(client_sd);
+            pthread_exit(NULL);
+        }
+
+        giocatore[n_byte] = '\0';
+        if(esiste_giocatore(testa, giocatore) == false) break;
+
+        if (send(client_sd, "Il nome selezionato è già utilizzato\n", 40, 0) <= 0)
+        {
+            perror("errore invio messaggio");
+            close(client_sd);
+            pthread_exit(NULL);
+        }
+    } 
+    //registrazione terminata, il nodo giocatore viene inizializzato
+    strcpy(nodo -> nome, giocatore);
+    nodo -> vittorie = 0;
+    nodo -> sconfitte = 0;
+    nodo -> pareggi = 0;
+    nodo -> stato = IN_LOBBY;
+    nodo -> tid_giocatore = pthread_self();
+
+    if (send(client_sd, "Registrazione completata, benvenuto\n", 37, 0) <= 0)
+    {
+        perror("errore invio messaggio");
+        close(client_sd);
+        pthread_exit(NULL);
+    }
+}
 void aggiungi_giocatore(struct nodo_giocatore *testa, const int client_sd)
 {
     if (testa == NULL)
     {
-        registra_giocatore(testa, client_sd);
+        registra_giocatore(testa, testa, client_sd);
     }
     else
     {
@@ -69,7 +87,7 @@ void aggiungi_giocatore(struct nodo_giocatore *testa, const int client_sd)
             tmp = tmp -> next_node;
         }
         tmp -> next_node = nuovo_giocatore;
-        registra_giocatore(nuovo_giocatore, client_sd);
+        registra_giocatore(testa, nuovo_giocatore, client_sd);
     }
 }
 struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo)

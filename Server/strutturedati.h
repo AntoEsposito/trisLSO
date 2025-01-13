@@ -3,7 +3,7 @@
 
 #include <pthread.h>
 
-#define MAXPLAYER 32 //il nome di un player può essere lungo massimo 31 caratteri
+#define MAXPLAYER 16 //il nome di un player può essere lungo massimo 15 caratteri
 
 enum stato_partita
 {
