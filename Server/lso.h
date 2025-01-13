@@ -14,7 +14,7 @@
 #include <stdbool.h>
 #include "strutturedati.h"
 
-int inizializza_server(); //restituisce socket descriptor del server
+int inizializza_server(); //socket con protocollo TCP, restituisce socket descriptor del server
 
 struct nodo_partita* crea_partita();
 struct nodo_partita* aggiungi_partita(struct nodo_partita *testa, struct nodo_partita *nodo);

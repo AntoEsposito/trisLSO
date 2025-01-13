@@ -9,7 +9,7 @@ struct nodo_giocatore* crea_giocatore()
         pthread_exit(NULL);
     }
 
-    memset(nodo, 0, sizeof(struct nodo_giocatore)); //pulisce la struct per sicurezza
+    memset(nodo, 0, sizeof(struct nodo_giocatore)); //pulisce il nodo per sicurezza
     nodo -> vittorie = 0;
     nodo -> sconfitte = 0;
     nodo -> pareggi = 0;
@@ -65,7 +65,7 @@ struct nodo_giocatore* aggiungi_giocatore(struct nodo_giocatore *testa, const in
         if (registra_giocatore(testa, testa, client_sd) == 1) 
         {
             close(client_sd);
-            cancella_giocatore(testa, testa);
+            free(testa);
             pthread_exit(NULL);
         }
     }
@@ -88,8 +88,9 @@ struct nodo_giocatore* aggiungi_giocatore(struct nodo_giocatore *testa, const in
 }
 struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo)
 {
-    if (nodo != NULL && strcmp(testa -> nome, nodo -> nome ) == 0) //significa che si sta cercando di cancellare la testa
+    if (nodo != NULL && testa == nodo) //significa che si sta cercando di cancellare la testa
     {
+        free(nodo);
         testa = NULL;
     }
     else if (nodo != NULL)
@@ -112,7 +113,7 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
     socklen_t lenght = sizeof(struct sockaddr_in);
 
     if ((sd = socket(AF_INET, SOCK_STREAM, 0))<0)
-        perror("errore creazione socket"), exit(EXIT_FAILURE);
+        perror("socket creation error"), exit(EXIT_FAILURE);
 
     memset(&address, 0, lenght);
     address.sin_family = AF_INET;
@@ -120,7 +121,7 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
     address.sin_addr.s_addr = INADDR_ANY;
 
     if (bind(sd, (struct sockaddr *) &address, lenght)<0)
-        perror("errore nel binding"), exit(EXIT_FAILURE);
+        perror("binding error"), exit(EXIT_FAILURE);
 
     if (listen(sd, 5)<0)
         perror("listen error"), exit(EXIT_FAILURE);
