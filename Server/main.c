@@ -1,9 +1,8 @@
 #include "lso.h"
 
-//liste che saranno gestite dai thread
-const struct nodo_partita *testa_partite = NULL;
-const struct nodo_giocatore *testa_giocatori = NULL;
-//il puntatore alla testa delle liste è allocato staticamente
+//il puntatore alla testa delle liste è allocato staticamente per essere gestito dai thread
+struct nodo_partita *testa_partite = NULL;
+struct nodo_giocatore *testa_giocatori = NULL;
 
 int main()
 {

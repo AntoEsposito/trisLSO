@@ -14,7 +14,7 @@
 #include <stdbool.h>
 #include "strutturedati.h"
 
-int inizializza_server();
+int inizializza_server(); //restituisce socket descriptor del server
 
 struct nodo_partita* crea_partita();
 struct nodo_partita* aggiungi_partita(struct nodo_partita *testa, struct nodo_partita *nodo);
@@ -22,8 +22,8 @@ struct nodo_partita* cancella_partita(struct nodo_partita *testa, struct nodo_pa
 
 struct nodo_giocatore* crea_giocatore();
 bool esiste_giocatore(struct nodo_giocatore *testa, const char *giocatore);
-void registra_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo, const int client_sd);
-void aggiungi_giocatore(struct nodo_giocatore *testa, const int client_sd);
+unsigned short int registra_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo, const int client_sd); //restituisce 0 in caso di successo e 1 in caso di errore
+struct nodo_giocatore* aggiungi_giocatore(struct nodo_giocatore *testa, const int client_sd);
 struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo);
 
 
