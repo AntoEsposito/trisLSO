@@ -13,10 +13,11 @@ int main()
     sd = inizializza_server(); //il server gira sulla porta 8080
     while(1)
     {
-        client_sd = accept(sd, (struct sockaddr *) &client_address, &lenght);
-        printf("client connesso");
-        testa_giocatori = aggiungi_giocatore(testa_giocatori, client_sd);
-        printf("%s", testa_giocatori->nome);
-        return 0;
+        if ((client_sd = accept(sd, (struct sockaddr *) &client_address, &lenght)) < 0)
+        {
+            perror("accept error");
+            continue;
+        }
     }
+    return 0;
 }

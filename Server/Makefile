@@ -1,18 +1,18 @@
 CC = gcc
 CFLAGS = -Wall
 TARGET = server
-OBJS = main.o lso.o 
+OBJS = main.o funzioni.o 
 
 all: $(TARGET)
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) -o $(TARGET) $(OBJS)
 
-main.o: main.c lso.h
+main.o: main.c funzioni.h
 	$(CC) $(CFLAGS) -c main.c
 
-lso.o: lso.c lso.h strutturedati.h
-	$(CC) $(CFLAGS) -c lso.c
+funzioni.o: funzioni.c funzioni.h strutturedati.h
+	$(CC) $(CFLAGS) -c funzioni.c
 
 clean:
 	rm -f $(OBJS) $(TARGET)
