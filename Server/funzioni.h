@@ -16,15 +16,12 @@
 
 int inizializza_server(); //socket con protocollo TCP, restituisce socket descriptor del server
 
-struct nodo_partita* crea_partita();
-struct nodo_partita* aggiungi_partita(struct nodo_partita *testa, struct nodo_partita *nodo);
-struct nodo_partita* cancella_partita(struct nodo_partita *testa, struct nodo_partita *nodo);
 unsigned short int invia_partite(struct nodo_partita *testa, const int client_sd); //invia le informazioni sulle partite al client
 
-struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, const char *nome_giocatore); 
-bool esiste_giocatore(struct nodo_giocatore *testa, const char *giocatore);
+struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, const char *nome_giocatore); //crea nodo e lo aggiunge in testa
+bool esiste_giocatore(struct nodo_giocatore *testa, const char *nome_giocatore); //verifica se esiste un nodo con lo stesso nome dato in input
 char* verifica_giocatore(struct nodo_giocatore *testa, const int client_sd); //restituisce il nome del giocatore se la registrazione va a buon fine
-struct nodo_giocatore* aggiungi_giocatore(struct nodo_giocatore *testa, const int client_sd);
+struct nodo_giocatore* registra_giocatore(struct nodo_giocatore *testa, const int client_sd); //chiama le 3 funzioni sopra per aggiungere un nuovo giocatore in lista
 struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo);
 
 

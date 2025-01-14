@@ -1,4 +1,4 @@
-#include "lso.h"
+#include "funzioni.h"
 
 //il puntatore alla testa delle liste è allocato staticamente per essere gestito dai thread
 struct nodo_partita *testa_partite = NULL;

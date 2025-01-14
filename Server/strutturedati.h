@@ -4,7 +4,7 @@
 #include <pthread.h>
 
 #define MAXPLAYER 16 //il nome di un player può essere lungo massimo 15 caratteri
-#define MAXOUT 64 //dimensione del buffer che usa il server per mandare messaggi
+#define MAXOUT 128 //dimensione del buffer che usa il server per mandare messaggi
 
 enum stato_partita
 {

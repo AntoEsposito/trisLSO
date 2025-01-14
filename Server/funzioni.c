@@ -6,7 +6,6 @@ struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, con
     struct nodo_giocatore *nodo = (struct nodo_giocatore *) malloc(sizeof(struct nodo_giocatore));
     if (nodo == NULL)
     {
-        perror("errore creazione giocatore");
         pthread_exit(NULL);
     }
 
@@ -23,14 +22,14 @@ struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, con
 
     return nodo;
 }
-bool esiste_giocatore(struct nodo_giocatore *testa, const char *giocatore)
+bool esiste_giocatore(struct nodo_giocatore *testa, const char *nome_giocatore)
 {
     if (testa != NULL)
     {
         struct nodo_giocatore *tmp = testa;
         while (tmp -> next_node != NULL)
         {
-            if (strcmp(tmp -> nome, giocatore) == 0) return true;
+            if (strcmp(tmp -> nome, nome_giocatore) == 0) return true;
             tmp = tmp -> next_node;
         }
     }
@@ -68,8 +67,7 @@ char* verifica_giocatore(struct nodo_giocatore *testa, const int client_sd)
             free(giocatore);
             pthread_exit(NULL);
         }
-    } 
-    //registrazione terminata, il campo nome viene inizializzato
+    }
 
     if (send(client_sd, "Registrazione completata\n", 26, 0) <= 0)
     {
@@ -114,7 +112,9 @@ unsigned short int invia_partite(struct nodo_partita *testa, const int client_sd
     memset(outbuffer, 0, MAXOUT);
 
     unsigned int indice = 0; //conta le partite a cui è possibile aggiungersi
-    char stringa_indice[3];
+    char stringa_indice[3]; //l'indice verrà convertito in questa stringa
+    memset(stringa_indice, 0, 3);
+
     struct nodo_partita *tmp = testa;
     char stato_partita[27];
 
@@ -126,6 +126,7 @@ unsigned short int invia_partite(struct nodo_partita *testa, const int client_sd
     {
         do
         {
+            memset(stato_partita, 0, 27);
             switch (tmp -> stato)
             {
                 case NUOVA_CREAZIONE:
@@ -150,7 +151,7 @@ unsigned short int invia_partite(struct nodo_partita *testa, const int client_sd
             {
                 indice ++;
                 sprintf(stringa_indice, "%u", indice);
-                strcat(outbuffer, "|| ID: "); strcat(outbuffer, stringa_indice);
+                strcat(outbuffer, " || ID: "); strcat(outbuffer, stringa_indice);
             }
             strcat(outbuffer, "\n");
             if(send(client_sd, outbuffer, strlen(outbuffer), 0) <= 0) return 1;
