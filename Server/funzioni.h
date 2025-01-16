@@ -3,6 +3,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <ctype.h>
 #include <unistd.h>
 #include <errno.h>
 #include <string.h>
@@ -18,7 +19,7 @@
 int inizializza_server();
 //invia le informazioni sulle partite al client appena entrato e ogni volta che riceve SIGUSR1 (implementata nel main)
 void invia_partite();
-//crea nodo e lo aggiunge in testa
+//crea un nodo giocatore e lo aggiunge in testa
 struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, const char *nome_giocatore, const int client_sd);
 //verifica se esiste un nodo con lo stesso nome dato in input
 bool esiste_giocatore(struct nodo_giocatore *testa, const char *nome_giocatore);
@@ -33,9 +34,11 @@ void handler_nuovo_giocatore();
 //elimina un nodo dalla lista e restituisce la nuova testa
 struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo);
 //prende in input la lista e un tid, restituisce il socket descriptor del client gestito dal tid
-int cerca_client_sd(struct nodo_giocatore *testa, const pthread_t tid);
+int cerca_sd_giocatore(struct nodo_giocatore *testa, const pthread_t tid);
 //crea un nodo partita e lo mette in testa alla lista
-struct nodo_partita* crea_partita_in_testa(struct nodo_partita *testa, const char *nome_proprietario);
+struct nodo_partita* crea_partita_in_testa(struct nodo_partita *testa, const char *nome_proprietario, const int id_proprietario);
+//se il proprietario accetta la richiesta di unione alla partita inserisce i dati dell'avversario nel nodo partita e restituisce vero, falso altrimenti
+bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
 
 
 #endif

@@ -29,15 +29,20 @@ int main()
 void handler_nuovo_giocatore()
 {
     const pthread_t tid = pthread_self();
-    int sd;
     struct nodo_giocatore *tmp = testa_giocatori;
+
+    char messaggio[MAXOUT];
+    memset(messaggio, 0, MAXOUT);
+    strcat(messaggio, tmp -> nome); strcat(messaggio, " è appena entrato in lobby!\n");
+
+    int sd;
     do
     {
         if (tmp -> tid_giocatore != tid)
         {
-            sd = tmp -> client_sd;
+            sd = tmp -> sd_giocatore;
             //l'handler ignora gli errori per essere il più veloce possibile
-            send(sd, "Un nuovo giocatore è appena entrato in lobby!\n", 48, 0);
+            send(sd, messaggio, strlen(messaggio), 0);
         }
         tmp = tmp -> next_node;
     } while (tmp -> next_node != NULL);
@@ -46,7 +51,7 @@ void invia_partite()
 {
     const pthread_t tid = pthread_self();
     struct nodo_partita *tmp = testa_partite;
-    const int client_sd = cerca_client_sd(testa_giocatori, tid);
+    const int client_sd = cerca_sd_giocatore(testa_giocatori, tid);
 
     char outbuffer[MAXOUT];
     memset(outbuffer, 0, MAXOUT);

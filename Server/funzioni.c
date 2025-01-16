@@ -12,7 +12,7 @@ struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, con
     nuova_testa -> pareggi = 0;
     nuova_testa -> stato = IN_LOBBY;
     nuova_testa -> tid_giocatore = pthread_self();
-    nuova_testa -> client_sd = client_sd;
+    nuova_testa -> sd_giocatore = client_sd;
     nuova_testa -> next_node = testa;
 
     return nuova_testa;
@@ -110,29 +110,53 @@ void segnala_nuovo_giocatore(struct nodo_giocatore *testa, const pthread_t tid_m
         tmp = tmp -> next_node;
     } while (tmp -> next_node != NULL);
 }
-int cerca_client_sd(struct nodo_giocatore *testa, const pthread_t tid)
+int cerca_sd_giocatore(struct nodo_giocatore *testa, const pthread_t tid)
 {
     struct nodo_giocatore *tmp = testa;
     do
     {
-        if(tmp -> tid_giocatore == tid) return tmp -> client_sd;
+        if(tmp -> tid_giocatore == tid) return tmp -> sd_giocatore;
         tmp = tmp -> next_node;
     } while (tmp -> next_node != NULL);
     return 0; //se non lo trova (caso improbabile)
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct nodo_partita* crea_partita_in_testa(struct nodo_partita *testa, const char *nome_proprietario)
+struct nodo_partita* crea_partita_in_testa(struct nodo_partita *testa, const char *nome_proprietario, const int sd_proprietario)
 {
     struct nodo_partita *nuova_testa = (struct nodo_partita *) malloc(sizeof(struct nodo_partita));
     if (nuova_testa == NULL) return testa; //creazione fallita, la lista rimane invariata
 
     memset(nuova_testa, 0, sizeof(struct nodo_partita));
     strcpy(nuova_testa -> proprietario, nome_proprietario);
+    nuova_testa -> sd_proprietario = sd_proprietario;
     nuova_testa -> stato = NUOVA_CREAZIONE;
     nuova_testa -> next_node = testa;
     if(testa -> stato == NUOVA_CREAZIONE) testa -> stato = IN_ATTESA;
 
     return nuova_testa;
+}
+bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario)
+{
+    const int sd_proprietario = partita -> sd_proprietario;
+    char risposta[3]; //si occupa il codice client di verificare l'input
+    memset(risposta, 0, 3);
+
+    if(recv(sd_proprietario, risposta, 2, 0) <= 0) //il proprietario si è disconnesso o simili
+    {
+        //cancella il nodo partita e il nodo giocatore del proprietario
+        return false;
+    }
+
+    risposta[0] = toupper(risposta[0]); //case insensitive
+    risposta[2] = '\0';
+
+    if(strcmp(risposta, "Si") == 0)
+    {
+        strcpy(partita -> avversario, nome_avversario);
+        partita -> sd_avversario = sd_avversario;
+        return true;
+    }
+    return false;
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int inizializza_server() //crea la socket, si mette in ascolto e restituisce il socket descriptor
