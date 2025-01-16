@@ -13,6 +13,7 @@ int main()
     sd = inizializza_server(); //il server gira sulla porta 8080
     signal(SIGUSR1, invia_partite);
     signal(SIGUSR2, handler_nuovo_giocatore);
+
     while(1)
     {
         if ((client_sd = accept(sd, (struct sockaddr *) &client_address, &lenght)) < 0)
@@ -35,7 +36,7 @@ void handler_nuovo_giocatore()
         if (tmp -> tid_giocatore != tid)
         {
             sd = tmp -> client_sd;
-            //l'handler ignora gli errori e va alla successiva iterazione del ciclo per essere il più veloce possibile
+            //l'handler ignora gli errori per essere il più veloce possibile
             send(sd, "Un nuovo giocatore è appena entrato in lobby!\n", 48, 0);
         }
         tmp = tmp -> next_node;

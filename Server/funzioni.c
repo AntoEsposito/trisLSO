@@ -2,26 +2,20 @@
 
 struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, const char *nome_giocatore, const int client_sd)
 {
-    //il nodo diventa la nuova testa!
-    struct nodo_giocatore *nodo = (struct nodo_giocatore *) malloc(sizeof(struct nodo_giocatore));
-    if (nodo == NULL)
-    {
-        pthread_exit(NULL);
-    }
+    struct nodo_giocatore *nuova_testa = (struct nodo_giocatore *) malloc(sizeof(struct nodo_giocatore));
+    if (nuova_testa == NULL) pthread_exit(NULL);
 
-    memset(nodo, 0, sizeof(struct nodo_giocatore)); //pulisce il nodo per sicurezza
-    strcpy(nodo -> nome, nome_giocatore);
-    nodo -> vittorie = 0;
-    nodo -> sconfitte = 0;
-    nodo -> pareggi = 0;
-    nodo -> stato = IN_LOBBY;
-    nodo -> tid_giocatore = pthread_self();
-    nodo -> client_sd = client_sd;
+    memset(nuova_testa, 0, sizeof(struct nodo_giocatore)); //pulisce il nodo per sicurezza
+    strcpy(nuova_testa -> nome, nome_giocatore);
+    nuova_testa -> vittorie = 0;
+    nuova_testa -> sconfitte = 0;
+    nuova_testa -> pareggi = 0;
+    nuova_testa -> stato = IN_LOBBY;
+    nuova_testa -> tid_giocatore = pthread_self();
+    nuova_testa -> client_sd = client_sd;
+    nuova_testa -> next_node = testa;
 
-    if (testa != NULL) nodo -> next_node = testa;
-    else nodo -> next_node = NULL;
-
-    return nodo;
+    return nuova_testa;
 }
 bool esiste_giocatore(struct nodo_giocatore *testa, const char *nome_giocatore)
 {
@@ -127,7 +121,20 @@ int cerca_client_sd(struct nodo_giocatore *testa, const pthread_t tid)
     return 0; //se non lo trova (caso improbabile)
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+struct nodo_partita* crea_partita_in_testa(struct nodo_partita *testa, const char *nome_proprietario)
+{
+    struct nodo_partita *nuova_testa = (struct nodo_partita *) malloc(sizeof(struct nodo_partita));
+    if (nuova_testa == NULL) return testa; //creazione fallita, la lista rimane invariata
 
+    memset(nuova_testa, 0, sizeof(struct nodo_partita));
+    strcpy(nuova_testa -> proprietario, nome_proprietario);
+    nuova_testa -> stato = NUOVA_CREAZIONE;
+    nuova_testa -> next_node = testa;
+    if(testa -> stato == NUOVA_CREAZIONE) testa -> stato = IN_ATTESA;
+
+    return nuova_testa;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 int inizializza_server() //crea la socket, si mette in ascolto e restituisce il socket descriptor
 {
     int sd;

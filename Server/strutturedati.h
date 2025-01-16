@@ -35,7 +35,6 @@ struct nodo_partita
     char proprietario[MAXPLAYER];
     char avversario[MAXPLAYER];
     enum stato_partita stato;
-    pthread_t tid_partita;
     struct nodo_partita *next_node;
 };
 
