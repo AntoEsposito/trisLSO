@@ -36,7 +36,7 @@ void handler_nuovo_giocatore()
         {
             sd = tmp -> client_sd;
             //l'handler ignora gli errori e va alla successiva iterazione del ciclo per essere il più veloce possibile
-            if (send(sd, "Un nuovo giocatore è appena entrato in lobby!\n", 48, 0) <= 0) continue;
+            send(sd, "Un nuovo giocatore è appena entrato in lobby!\n", 48, 0);
         }
         tmp = tmp -> next_node;
     } while (tmp -> next_node != NULL);
@@ -57,7 +57,7 @@ void invia_partite()
     char stato_partita[27];
 
     if(tmp == NULL) send(client_sd, "Non ci sono partite attive al momento, scrivi \"crea\" per crearne una nuova\n", 76, 0);
-    //anche questa funzione non fa error checking in quanto handler che deve essere eseguito molte volte e velocemente
+    //anche questa funzione non fa error checking in quanto handler
     else
     {
         do
