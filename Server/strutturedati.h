@@ -27,6 +27,7 @@ struct nodo_giocatore
     unsigned int sconfitte;
     unsigned int pareggi;
     pthread_t tid_giocatore;
+    int client_sd; //questo campo è necessario per le funzioni di signal handling
     struct nodo_giocatore *next_node;
 };
 struct nodo_partita
