@@ -40,5 +40,8 @@ struct nodo_partita
     struct nodo_partita *next_node;
 };
 
+//liste che saranno gestite dai thread (inizializzate in funzioni.c)
+extern struct nodo_partita *testa_partite;
+extern struct nodo_giocatore *testa_giocatori;
 
 #endif

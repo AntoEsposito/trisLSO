@@ -1,6 +1,12 @@
 #include "funzioni.h"
 
-struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, const char *nome_giocatore, const int client_sd)
+//inizializzazione delle liste
+struct nodo_partita *testa_partite = NULL;
+struct nodo_giocatore *testa_giocatori = NULL;
+
+//funzioni di gestione giocatori
+
+void crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd)
 {
     struct nodo_giocatore *nuova_testa = (struct nodo_giocatore *) malloc(sizeof(struct nodo_giocatore));
     if (nuova_testa == NULL) pthread_exit(NULL);
@@ -13,15 +19,15 @@ struct nodo_giocatore* crea_giocatore_in_testa(struct nodo_giocatore *testa, con
     nuova_testa -> stato = IN_LOBBY;
     nuova_testa -> tid_giocatore = pthread_self();
     nuova_testa -> sd_giocatore = client_sd;
-    nuova_testa -> next_node = testa;
+    nuova_testa -> next_node = testa_giocatori;
 
-    return nuova_testa;
+    testa_giocatori = nuova_testa;
 }
-bool esiste_giocatore(struct nodo_giocatore *testa, const char *nome_giocatore)
+bool esiste_giocatore(const char *nome_giocatore)
 {
-    if (testa != NULL)
+    if (testa_giocatori != NULL)
     {
-        struct nodo_giocatore *tmp = testa;
+        struct nodo_giocatore *tmp = testa_giocatori;
         while (tmp -> next_node != NULL)
         {
             if (strcmp(tmp -> nome, nome_giocatore) == 0) return true;
@@ -30,7 +36,7 @@ bool esiste_giocatore(struct nodo_giocatore *testa, const char *nome_giocatore)
     }
     return false;
 }
-char* verifica_giocatore(struct nodo_giocatore *testa, const int client_sd)
+char* verifica_giocatore(const int client_sd)
 {
     char *giocatore = (char *) malloc(MAXPLAYER*sizeof(char));
     memset(giocatore, 0, MAXPLAYER);
@@ -54,7 +60,7 @@ char* verifica_giocatore(struct nodo_giocatore *testa, const int client_sd)
         }
 
         giocatore[n_byte] = '\0';
-        if(!(esiste_giocatore(testa, giocatore))) break;
+        if(!(esiste_giocatore(giocatore))) break;
 
         if (send(client_sd, "Il nome selezionato è già utilizzato\n", 40, 0) <= 0)
         {
@@ -73,23 +79,22 @@ char* verifica_giocatore(struct nodo_giocatore *testa, const int client_sd)
 
     return giocatore;
 }
-struct nodo_giocatore* registra_giocatore(struct nodo_giocatore *testa, const int client_sd)
+void registra_giocatore(const int client_sd)
 {
-    char *nome_giocatore = verifica_giocatore(testa, client_sd);
-    testa = crea_giocatore_in_testa(testa, nome_giocatore, client_sd);
+    char *nome_giocatore = verifica_giocatore(client_sd);
+    crea_giocatore_in_testa(nome_giocatore, client_sd);
     free(nome_giocatore);
-    return testa;
 }
-struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct nodo_giocatore *nodo)
+void cancella_giocatore(struct nodo_giocatore *nodo)
 {
-    if (nodo != NULL && testa == nodo) //significa che si sta cercando di cancellare la testa
+    if (nodo != NULL && testa_giocatori == nodo) //significa che si sta cercando di cancellare la testa
     {
         free(nodo);
-        testa = NULL;
+        testa_giocatori = testa_giocatori -> next_node;
     }
     else if (nodo != NULL)
     {
-        struct nodo_giocatore *tmp = testa;
+        struct nodo_giocatore *tmp = testa_giocatori;
         while(tmp -> next_node != nodo)
         {
             tmp = tmp -> next_node;
@@ -97,12 +102,11 @@ struct nodo_giocatore* cancella_giocatore(struct nodo_giocatore *testa, struct n
         tmp -> next_node = nodo -> next_node;
         free(nodo);
     }
-    return testa;
 }
-void segnala_nuovo_giocatore(struct nodo_giocatore *testa, const pthread_t tid_mittente)
+void segnala_nuovo_giocatore(const pthread_t tid_mittente)
 { 
     pthread_t tid_ricevente;
-    struct nodo_giocatore *tmp = testa;
+    struct nodo_giocatore *tmp = testa_giocatori;
     do
     {
         tid_ricevente = tmp -> tid_giocatore;
@@ -110,9 +114,9 @@ void segnala_nuovo_giocatore(struct nodo_giocatore *testa, const pthread_t tid_m
         tmp = tmp -> next_node;
     } while (tmp -> next_node != NULL);
 }
-int cerca_sd_giocatore(struct nodo_giocatore *testa, const pthread_t tid)
+int cerca_sd_giocatore(const pthread_t tid)
 {
-    struct nodo_giocatore *tmp = testa;
+    struct nodo_giocatore *tmp = testa_giocatori;
     do
     {
         if(tmp -> tid_giocatore == tid) return tmp -> sd_giocatore;
@@ -120,37 +124,43 @@ int cerca_sd_giocatore(struct nodo_giocatore *testa, const pthread_t tid)
     } while (tmp -> next_node != NULL);
     return 0; //se non lo trova (caso improbabile)
 }
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-struct nodo_partita* crea_partita_in_testa(struct nodo_partita *testa, const char *nome_proprietario, const int sd_proprietario)
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di gestione partite
+
+void crea_partita_in_testa(const char *nome_proprietario, const int sd_proprietario)
 {
     struct nodo_partita *nuova_testa = (struct nodo_partita *) malloc(sizeof(struct nodo_partita));
-    if (nuova_testa == NULL) return testa; //creazione fallita, la lista rimane invariata
+    if (nuova_testa == NULL) return; //creazione fallita, la lista rimane invariata
 
     memset(nuova_testa, 0, sizeof(struct nodo_partita));
     strcpy(nuova_testa -> proprietario, nome_proprietario);
     nuova_testa -> sd_proprietario = sd_proprietario;
     nuova_testa -> stato = NUOVA_CREAZIONE;
-    nuova_testa -> next_node = testa;
-    if(testa -> stato == NUOVA_CREAZIONE) testa -> stato = IN_ATTESA;
+    nuova_testa -> next_node = testa_partite;
+    if(testa_partite -> stato == NUOVA_CREAZIONE) testa_partite -> stato = IN_ATTESA;
 
-    return nuova_testa;
+    testa_partite = nuova_testa;
 }
 bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario)
 {
     const int sd_proprietario = partita -> sd_proprietario;
-    char risposta[3]; //si occupa il codice client di verificare l'input
-    memset(risposta, 0, 3);
+    char buffer[MAXOUT];
+    memset(buffer, 0, MAXOUT);
+    char risposta; //si occupa il codice client di verificare che l'input sia o "s" o "n"
+    strcat(buffer, nome_avversario); strcat(buffer, " vuole unirsi alla tua partita, accetti? [s/n]\n");
 
-    if(recv(sd_proprietario, risposta, 2, 0) <= 0) //il proprietario si è disconnesso o simili
+    if(send(sd_proprietario, buffer, strlen(buffer), 0) <= 0) //il proprietario si è disconnesso o simili
     {
-        //cancella il nodo partita e il nodo giocatore del proprietario
+        //cancella nodo partita e giocatore del proprietario, uccide il thread che li stava gestendo
+        return false;
+    }
+    if(recv(sd_proprietario, &risposta, 1, 0) <= 0)
+    {
+        //cancella il nodo partita e giocatore del proprietario, uccide il thread che stava gestendo
         return false;
     }
 
-    risposta[0] = toupper(risposta[0]); //case insensitive
-    risposta[2] = '\0';
-
-    if(strcmp(risposta, "Si") == 0)
+    risposta = toupper(risposta); //case insensitive
+    if(risposta == 'S')
     {
         strcpy(partita -> avversario, nome_avversario);
         partita -> sd_avversario = sd_avversario;
@@ -158,7 +168,26 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
     }
     return false;
 }
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+void cancella_partita(struct nodo_partita *nodo)
+{
+    if (nodo != NULL && testa_partite == nodo) //significa che si sta cercando di cancellare la testa
+    {
+        free(nodo);
+        testa_partite = testa_partite -> next_node;
+    }
+    else if (nodo != NULL)
+    {
+        struct nodo_partita *tmp = testa_partite;
+        while(tmp -> next_node != nodo)
+        {
+            tmp = tmp -> next_node;
+        }
+        tmp -> next_node = nodo -> next_node;
+        free(nodo);
+    }
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni generali server
+
 int inizializza_server() //crea la socket, si mette in ascolto e restituisce il socket descriptor
 {
     int sd;
@@ -180,4 +209,84 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
         perror("listen error"), exit(EXIT_FAILURE);
 
     return sd;
+}
+//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di signal handling
+
+void handler_nuovo_giocatore()
+{
+    const pthread_t tid = pthread_self();
+    struct nodo_giocatore *tmp = testa_giocatori;
+
+    char messaggio[MAXOUT];
+    memset(messaggio, 0, MAXOUT);
+    strcat(messaggio, tmp -> nome); strcat(messaggio, " è appena entrato in lobby!\n");
+
+    int sd;
+    do
+    {
+        if (tmp -> tid_giocatore != tid)
+        {
+            sd = tmp -> sd_giocatore;
+            //l'handler ignora gli errori per essere il più veloce possibile
+            send(sd, messaggio, strlen(messaggio), 0);
+        }
+        tmp = tmp -> next_node;
+    } while (tmp -> next_node != NULL);
+}
+void invia_partite()
+{
+    const pthread_t tid = pthread_self();
+    struct nodo_partita *tmp = testa_partite;
+    const int client_sd = cerca_sd_giocatore(tid);
+
+    char outbuffer[MAXOUT];
+    memset(outbuffer, 0, MAXOUT);
+
+    unsigned int indice = 0; //conta le partite a cui è possibile aggiungersi
+    char stringa_indice[3]; //l'indice verrà convertito in questa stringa
+    memset(stringa_indice, 0, 3);
+
+    char stato_partita[27];
+
+    if(tmp == NULL) send(client_sd, "Non ci sono partite attive al momento, scrivi \"crea\" per crearne una nuova\n", 76, 0);
+    //anche questa funzione non fa error checking in quanto handler
+    else
+    {
+        do
+        {
+            memset(stato_partita, 0, 27);
+            switch (tmp -> stato)
+            {
+                case NUOVA_CREAZIONE:
+                    strcpy(stato_partita, "Nuova creazione: in attesa");
+                    break;
+                case IN_ATTESA:
+                    strcpy(stato_partita, "In attesa di un giocatore");
+                    break;
+                case IN_CORSO:
+                    strcpy(stato_partita, "In corso");
+                    break;
+                case TERMINATA:
+                    strcpy(stato_partita, "Terminata");
+                    break;
+            }
+
+            strcat(outbuffer, "Partita di "); strcat(outbuffer, tmp -> proprietario); strcat(outbuffer, "\n");
+            strcat(outbuffer, "Avversario: "); strcat(outbuffer, tmp -> avversario); strcat(outbuffer, "\n");
+            strcat(outbuffer, "Stato: "); strcat(outbuffer, stato_partita);
+
+            if (tmp -> stato == NUOVA_CREAZIONE || tmp -> stato == IN_ATTESA)
+            {
+                indice ++;
+                sprintf(stringa_indice, "%u", indice);
+                strcat(outbuffer, " || ID: "); strcat(outbuffer, stringa_indice);
+            }
+            strcat(outbuffer, "\n");
+            send(client_sd, outbuffer, strlen(outbuffer), 0);
+
+            tmp = tmp -> next_node;
+        }
+        while (tmp -> next_node != NULL);
+        send(client_sd, "Unisciti a una partita in attesa scrivendo il relativo ID o scrivi \"crea\" per crearne una\n", 91, 0);
+    }
 }
