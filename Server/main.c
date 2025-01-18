@@ -9,6 +9,7 @@ int main()
     sd = inizializza_server();
     signal(SIGUSR1, invia_partite);
     signal(SIGUSR2, handler_nuovo_giocatore);
+    signal(SIGALRM, sigalrm_handler);
 
     while(1)
     {

@@ -36,6 +36,19 @@ bool esiste_giocatore(const char *nome_giocatore)
     }
     return false;
 }
+struct nodo_giocatore* trova_giocatore(const char *nome_giocatore)
+{
+    if (testa_giocatori != NULL)
+    {
+        struct nodo_giocatore *tmp = testa_giocatori;
+        while (tmp -> next_node != NULL)
+        {
+            if (strcmp(tmp -> nome, nome_giocatore) == 0) return tmp;
+            tmp = tmp -> next_node;
+        }
+    }
+    return NULL; //improbabile
+}
 char* verifica_giocatore(const int client_sd)
 {
     char *giocatore = (char *) malloc(MAXPLAYER*sizeof(char));
@@ -150,12 +163,12 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
 
     if(send(sd_proprietario, buffer, strlen(buffer), 0) <= 0) //il proprietario si è disconnesso o simili
     {
-        //cancella nodo partita e giocatore del proprietario, uccide il thread che li stava gestendo
+        error_handler(partita, partita -> proprietario);
         return false;
     }
     if(recv(sd_proprietario, &risposta, 1, 0) <= 0)
     {
-        //cancella il nodo partita e giocatore del proprietario, uccide il thread che stava gestendo
+        error_handler(partita, partita -> proprietario);
         return false;
     }
 
@@ -166,7 +179,7 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
         partita -> sd_avversario = sd_avversario;
         return true;
     }
-    return false;
+    else return false;
 }
 void cancella_partita(struct nodo_partita *nodo)
 {
@@ -210,8 +223,27 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
 
     return sd;
 }
+void error_handler(struct nodo_partita *partita, const char *nome_giocatore)
+{
+    if (partita != NULL) cancella_partita(partita);
+
+    struct nodo_giocatore *giocatore = trova_giocatore(giocatore);
+    const pthread_t tid = giocatore -> tid_giocatore;
+
+    if(giocatore != NULL) 
+    {
+        pthread_kill(tid, SIGALRM);
+        cancella_giocatore(giocatore);
+    }
+}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di signal handling
 
+void sigalrm_handler()
+{
+    int sd = cerca_sd_giocatore(pthread_self());
+    close(sd);
+    pthread_exit(NULL);
+}
 void handler_nuovo_giocatore()
 {
     const pthread_t tid = pthread_self();
