@@ -36,7 +36,7 @@ bool esiste_giocatore(const char *nome_giocatore)
     }
     return false;
 }
-struct nodo_giocatore* trova_giocatore(const char *nome_giocatore)
+struct nodo_giocatore* trova_giocatore_da_nome(const char *nome_giocatore) //TODO
 {
     if (testa_giocatori != NULL)
     {
@@ -49,13 +49,26 @@ struct nodo_giocatore* trova_giocatore(const char *nome_giocatore)
     }
     return NULL; //improbabile
 }
+struct nodo_giocatore* trova_giocatore_da_tid(const pthread_t tid)  //TODO
+{
+    if (testa_giocatori != NULL)
+    {
+        struct nodo_giocatore *tmp = testa_giocatori;
+        do
+        {
+            if (tmp -> tid_giocatore == tid) return tmp;
+            tmp = tmp -> next_node;
+        } while (tmp -> next_node != NULL);
+    }
+    return NULL; //improbabile
+}
 char* verifica_giocatore(const int client_sd)
 {
     char *giocatore = (char *) malloc(MAXPLAYER*sizeof(char));
     memset(giocatore, 0, MAXPLAYER);
     int n_byte;
 
-    if (send(client_sd, "Benvenuto, inserisci il tuo nome per registrarti (max 15 caratteri)\n", 69, 0) <= 0)
+    if (send(client_sd, "Benvenuto, inserisci il tuo nome per registrarti (max 15 caratteri)\n", 69, 0) <= 0) 
     {
         close(client_sd);
         free(giocatore);
@@ -126,16 +139,6 @@ void segnala_nuovo_giocatore(const pthread_t tid_mittente)
         if (tid_ricevente != tid_mittente) pthread_kill(tid_ricevente, SIGUSR2);
         tmp = tmp -> next_node;
     } while (tmp -> next_node != NULL);
-}
-int cerca_sd_giocatore(const pthread_t tid)
-{
-    struct nodo_giocatore *tmp = testa_giocatori;
-    do
-    {
-        if(tmp -> tid_giocatore == tid) return tmp -> sd_giocatore;
-        tmp = tmp -> next_node;
-    } while (tmp -> next_node != NULL);
-    return 0; //se non lo trova (caso improbabile)
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di gestione partite
 
@@ -227,7 +230,7 @@ void error_handler(struct nodo_partita *partita, const char *nome_giocatore)
 {
     if (partita != NULL) cancella_partita(partita);
 
-    struct nodo_giocatore *giocatore = trova_giocatore(giocatore);
+    struct nodo_giocatore *giocatore = trova_giocatore_da_nome(nome_giocatore);
     const pthread_t tid = giocatore -> tid_giocatore;
 
     if(giocatore != NULL) 
@@ -240,8 +243,8 @@ void error_handler(struct nodo_partita *partita, const char *nome_giocatore)
 
 void sigalrm_handler()
 {
-    int sd = cerca_sd_giocatore(pthread_self());
-    close(sd);
+    struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
+    close(giocatore -> sd_giocatore);
     pthread_exit(NULL);
 }
 void handler_nuovo_giocatore()
@@ -269,7 +272,8 @@ void invia_partite()
 {
     const pthread_t tid = pthread_self();
     struct nodo_partita *tmp = testa_partite;
-    const int client_sd = cerca_sd_giocatore(tid);
+    struct nodo_giocatore *giocatore = trova_giocatore_da_tid(tid);
+    const int client_sd = giocatore -> sd_giocatore;
 
     char outbuffer[MAXOUT];
     memset(outbuffer, 0, MAXOUT);
