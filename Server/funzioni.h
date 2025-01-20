@@ -31,7 +31,7 @@ void registra_giocatore(const int client_sd);
 //elimina un nodo giocatore dalla lista e restituisce la nuova testa
 void cancella_giocatore(struct nodo_giocatore *nodo);
 //invia il segnale SIGUSR2 a tutti gli altri thread con giocatore in lobby
-void segnala_nuovo_giocatore(const pthread_t tid_mittente);
+void segnala_nuovo_giocatore();
 //funzioni di gestione partite
 //crea un nodo partita e lo mette in testa alla lista
 void crea_partita_in_testa(const char *nome_proprietario, const int id_proprietario);

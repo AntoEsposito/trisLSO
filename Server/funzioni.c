@@ -9,7 +9,12 @@ struct nodo_giocatore *testa_giocatori = NULL;
 void crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd)
 {
     struct nodo_giocatore *nuova_testa = (struct nodo_giocatore *) malloc(sizeof(struct nodo_giocatore));
-    if (nuova_testa == NULL) pthread_exit(NULL);
+    if (nuova_testa == NULL)
+    {
+        send(client_sd, "errore\n", 7, 0); 
+        close(client_sd);
+        pthread_exit(NULL);
+    }
 
     memset(nuova_testa, 0, sizeof(struct nodo_giocatore)); //pulisce il nodo per sicurezza
     strcpy(nuova_testa -> nome, nome_giocatore);
@@ -25,57 +30,58 @@ void crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd)
 }
 bool esiste_giocatore(const char *nome_giocatore)
 {
-    if (testa_giocatori != NULL)
+    struct nodo_giocatore *tmp = testa_giocatori;
+
+    while (tmp != NULL)
     {
-        struct nodo_giocatore *tmp = testa_giocatori;
-        while (tmp -> next_node != NULL)
-        {
-            if (strcmp(tmp -> nome, nome_giocatore) == 0) return true;
-            tmp = tmp -> next_node;
-        }
-    }
+        if (strcmp(tmp -> nome, nome_giocatore) == 0) return true;
+        tmp = tmp -> next_node;
+    } 
     return false;
 }
-struct nodo_giocatore* trova_giocatore_da_nome(const char *nome_giocatore) //TODO
+struct nodo_giocatore* trova_giocatore_da_nome(const char *nome_giocatore)
 {
-    if (testa_giocatori != NULL)
+    struct nodo_giocatore *tmp = testa_giocatori;
+
+    while (tmp != NULL)
     {
-        struct nodo_giocatore *tmp = testa_giocatori;
-        while (tmp -> next_node != NULL)
-        {
-            if (strcmp(tmp -> nome, nome_giocatore) == 0) return tmp;
-            tmp = tmp -> next_node;
-        }
-    }
+        if (strcmp(tmp -> nome, nome_giocatore) == 0) return tmp;
+        tmp = tmp -> next_node;
+    } 
     return NULL; //improbabile
 }
-struct nodo_giocatore* trova_giocatore_da_tid(const pthread_t tid)  //TODO
+struct nodo_giocatore* trova_giocatore_da_tid(const pthread_t tid)
 {
-    if (testa_giocatori != NULL)
+    struct nodo_giocatore *tmp = testa_giocatori;
+
+    while (tmp != NULL)
     {
-        struct nodo_giocatore *tmp = testa_giocatori;
-        do
-        {
-            if (tmp -> tid_giocatore == tid) return tmp;
-            tmp = tmp -> next_node;
-        } while (tmp -> next_node != NULL);
+        if (tmp -> tid_giocatore == tid) return tmp;
+        tmp = tmp -> next_node;
     }
     return NULL; //improbabile
 }
 char* verifica_giocatore(const int client_sd)
 {
     char *giocatore = (char *) malloc(MAXPLAYER*sizeof(char));
+    if (giocatore == NULL)
+    {
+        send(client_sd, "errore\n", 7, 0);
+        close(client_sd);
+        pthread_exit(NULL);
+    }
+
     memset(giocatore, 0, MAXPLAYER);
     int n_byte;
 
-    if (send(client_sd, "Benvenuto, inserisci il tuo nome per registrarti (max 15 caratteri)\n", 69, 0) <= 0) 
+    if (send(client_sd, "Benvenuto, inserisci il tuo nome per registrarti (max 15 caratteri)\n", 68, 0) <= 0) 
     {
         close(client_sd);
         free(giocatore);
         pthread_exit(NULL);
     }
 
-    while(true)
+    while (true)
     {
         //si occupa il codice del client di verificare che i caratteri inviati siano al massimo 15
         if ((n_byte = recv(client_sd, giocatore, MAXPLAYER, 0)) <= 0 )
@@ -88,7 +94,7 @@ char* verifica_giocatore(const int client_sd)
         giocatore[n_byte] = '\0';
         if(!(esiste_giocatore(giocatore))) break;
 
-        if (send(client_sd, "Il nome selezionato è già utilizzato\n", 40, 0) <= 0)
+        if (send(client_sd, "Il nome selezionato è già utilizzato\n", 39, 0) <= 0)
         {
             close(client_sd);
             free(giocatore);
@@ -96,7 +102,7 @@ char* verifica_giocatore(const int client_sd)
         }
     }
 
-    if (send(client_sd, "Registrazione completata\n", 26, 0) <= 0)
+    if (send(client_sd, "Registrazione completata\n", 25, 0) <= 0)
     {
         close(client_sd);
         free(giocatore);
@@ -121,7 +127,7 @@ void cancella_giocatore(struct nodo_giocatore *nodo)
     else if (nodo != NULL)
     {
         struct nodo_giocatore *tmp = testa_giocatori;
-        while(tmp -> next_node != nodo)
+        while(tmp -> next_node != nodo && tmp != NULL) //in teoria è impossibile che tmp diventi null
         {
             tmp = tmp -> next_node;
         }
@@ -129,16 +135,18 @@ void cancella_giocatore(struct nodo_giocatore *nodo)
         free(nodo);
     }
 }
-void segnala_nuovo_giocatore(const pthread_t tid_mittente)
+void segnala_nuovo_giocatore()
 { 
+    const pthread_t tid_mittente = pthread_self();
     pthread_t tid_ricevente;
     struct nodo_giocatore *tmp = testa_giocatori;
-    do
+
+    while (tmp != NULL)
     {
         tid_ricevente = tmp -> tid_giocatore;
         if (tid_ricevente != tid_mittente) pthread_kill(tid_ricevente, SIGUSR2);
         tmp = tmp -> next_node;
-    } while (tmp -> next_node != NULL);
+    }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di gestione partite
 
@@ -146,6 +154,7 @@ void crea_partita_in_testa(const char *nome_proprietario, const int sd_proprieta
 {
     struct nodo_partita *nuova_testa = (struct nodo_partita *) malloc(sizeof(struct nodo_partita));
     if (nuova_testa == NULL) return; //creazione fallita, la lista rimane invariata
+    //NOTA: potremmo far restituire true se la creazione è avvenuta e false altrimenti
 
     memset(nuova_testa, 0, sizeof(struct nodo_partita));
     strcpy(nuova_testa -> proprietario, nome_proprietario);
@@ -161,7 +170,7 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
     const int sd_proprietario = partita -> sd_proprietario;
     char buffer[MAXOUT];
     memset(buffer, 0, MAXOUT);
-    char risposta; //si occupa il codice client di verificare che l'input sia o "s" o "n"
+    char risposta = '\0'; //si occupa il codice client di verificare che l'input sia o "s" o "n"
     strcat(buffer, nome_avversario); strcat(buffer, " vuole unirsi alla tua partita, accetti? [s/n]\n");
 
     if(send(sd_proprietario, buffer, strlen(buffer), 0) <= 0) //il proprietario si è disconnesso o simili
@@ -194,7 +203,7 @@ void cancella_partita(struct nodo_partita *nodo)
     else if (nodo != NULL)
     {
         struct nodo_partita *tmp = testa_partite;
-        while(tmp -> next_node != nodo)
+        while(tmp -> next_node != nodo && tmp != NULL)
         {
             tmp = tmp -> next_node;
         }
@@ -233,7 +242,7 @@ void error_handler(struct nodo_partita *partita, const char *nome_giocatore)
     struct nodo_giocatore *giocatore = trova_giocatore_da_nome(nome_giocatore);
     const pthread_t tid = giocatore -> tid_giocatore;
 
-    if(giocatore != NULL) 
+    if (giocatore != NULL) 
     {
         pthread_kill(tid, SIGALRM);
         cancella_giocatore(giocatore);
@@ -255,9 +264,9 @@ void handler_nuovo_giocatore()
     char messaggio[MAXOUT];
     memset(messaggio, 0, MAXOUT);
     strcat(messaggio, tmp -> nome); strcat(messaggio, " è appena entrato in lobby!\n");
-
     int sd;
-    do
+    
+    while(tmp != NULL)
     {
         if (tmp -> tid_giocatore != tid)
         {
@@ -266,7 +275,7 @@ void handler_nuovo_giocatore()
             send(sd, messaggio, strlen(messaggio), 0);
         }
         tmp = tmp -> next_node;
-    } while (tmp -> next_node != NULL);
+    }
 }
 void invia_partite()
 {
@@ -284,11 +293,11 @@ void invia_partite()
 
     char stato_partita[27];
 
-    if(tmp == NULL) send(client_sd, "Non ci sono partite attive al momento, scrivi \"crea\" per crearne una nuova\n", 76, 0);
+    if(tmp == NULL) send(client_sd, "Non ci sono partite attive al momento, scrivi \"crea\" per crearne una nuova\n", 75, 0);
     //anche questa funzione non fa error checking in quanto handler
     else
     {
-        do
+        while (tmp != NULL)
         {
             memset(stato_partita, 0, 27);
             switch (tmp -> stato)
@@ -322,7 +331,6 @@ void invia_partite()
 
             tmp = tmp -> next_node;
         }
-        while (tmp -> next_node != NULL);
-        send(client_sd, "Unisciti a una partita in attesa scrivendo il relativo ID o scrivi \"crea\" per crearne una\n", 91, 0);
+        send(client_sd, "Unisciti a una partita in attesa scrivendo il relativo ID o scrivi \"crea\" per crearne una\n", 90, 0);
     }
 }
