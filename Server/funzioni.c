@@ -193,6 +193,65 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
     }
     else return false;
 }
+void partita(struct nodo_partita *dati_partita)
+{
+    char buffer[MAXPARTITA];
+    memset(buffer, 0, MAXPARTITA);
+
+    const int sd_proprietario = dati_partita -> sd_proprietario;
+    char nome_proprietario[MAXPLAYER];
+    memset(nome_proprietario, 0, MAXPLAYER);
+    strcpy(nome_proprietario, dati_partita -> proprietario);
+    struct nodo_giocatore *proprietario = trova_giocatore_da_nome(nome_proprietario);
+    proprietario -> stato = IN_PARTITA;
+
+    //il proprietario si blocca su questa recv finchè la funzione di unione non manda un messaggio di conferma unione
+    if (recv(sd_proprietario, buffer, MAXPARTITA, 0) <= 0) error_handler(dati_partita, nome_proprietario);
+
+    const int sd_avversario = dati_partita -> sd_avversario;
+    char nome_avversario[MAXPLAYER];
+    memset(nome_avversario, 0, MAXPLAYER);
+    strcpy(nome_avversario, dati_partita -> avversario);
+    struct nodo_giocatore *avversario = trova_giocatore_da_nome(nome_avversario);
+    avversario -> stato = IN_PARTITA;
+
+    //TODO : funzione che segnala cambiamento nello stato partite mandando SIGUSR2
+    dati_partita -> stato = IN_CORSO;
+    char giocata = '\0';
+    char esito = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
+    //'0' = ancora in corso '1' = vince proprietario, '2' = vince avversario, '3' = pareggio
+
+    //inizia la partita
+    while (esito == '0') //non è il terminatore \0 ma il carattere 0
+    {
+        //inizia il proprietario
+        if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(dati_partita, nome_proprietario);
+        if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(dati_partita, nome_proprietario);
+        if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(dati_partita, nome_avversario);
+        if (esito != '0') break;
+
+        //turno dell'avversario
+        if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(dati_partita, nome_avversario);
+        if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(dati_partita, nome_avversario);
+        if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(dati_partita, nome_proprietario);
+    }
+    //partita finita, si aggiornano i contatori dei giocatori
+    switch (esito)
+    {
+        case '1':
+            proprietario -> vittorie++;
+            avversario -> sconfitte++;
+        case '2': 
+            proprietario -> sconfitte++;
+            avversario -> vittorie++;
+        default:
+            proprietario -> pareggi++;
+            avversario -> pareggi++;
+    }
+    dati_partita -> stato = IN_CORSO;
+    //TODO: anche qui viene chiamata la funzio e che manda SIGUSR2
+    //partita finita, viene chiamata una funzione che chiede se si vuole la rivincita o meno
+}
 void cancella_partita(struct nodo_partita *nodo)
 {
     if (nodo != NULL && testa_partite == nodo) //significa che si sta cercando di cancellare la testa
@@ -294,7 +353,7 @@ void invia_partite()
     char stato_partita[27];
 
     if(tmp == NULL) send(client_sd, "Non ci sono partite attive al momento, scrivi \"crea\" per crearne una nuova\n", 75, 0);
-    //anche questa funzione non fa error checking in quanto handler
+    //anche questa funzione non fa error checking in quanto signal handler
     else
     {
         while (tmp != NULL)

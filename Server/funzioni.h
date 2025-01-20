@@ -37,6 +37,8 @@ void segnala_nuovo_giocatore();
 void crea_partita_in_testa(const char *nome_proprietario, const int id_proprietario);
 //se il proprietario accetta la richiesta di unione alla partita inserisce i dati dell'avversario nel nodo partita e restituisce vero, falso altrimenti
 bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
+//funzione che gestisce la partita tra 2 giocatori
+void partita(struct nodo_partita *dati_partita);
 //elimina un nodo partita dalla lista e restituisce la nuova testa
 void cancella_partita(struct nodo_partita *nodo);
 //funzioni generali server
