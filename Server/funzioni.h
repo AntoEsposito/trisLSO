@@ -41,6 +41,8 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
 void partita(struct nodo_partita *dati_partita);
 //elimina un nodo partita dalla lista e restituisce la nuova testa
 void cancella_partita(struct nodo_partita *nodo);
+//invia SIGUSR2 a tutti i thread con giocatori in lobby
+void segnala_cambiamento_partite();
 //funzioni generali server
 //crea socket con protocollo TCP, si mette in ascolto sulla porta 8080 e restituisce socket descriptor del server
 int inizializza_server();

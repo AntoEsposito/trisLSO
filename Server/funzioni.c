@@ -270,6 +270,22 @@ void cancella_partita(struct nodo_partita *nodo)
         free(nodo);
     }
 }
+void segnala_cambiamento_partite()
+{ 
+    const pthread_t tid_mittente = pthread_self();
+    pthread_t tid_ricevente;
+    struct nodo_giocatore *tmp = testa_giocatori;
+
+    while (tmp != NULL)
+    {
+        if(tmp -> stato == IN_LOBBY)
+        {
+            tid_ricevente = tmp -> tid_giocatore;
+            if (tid_ricevente != tid_mittente) pthread_kill(tid_ricevente, SIGUSR1);
+            tmp = tmp -> next_node;
+        }
+    }
+}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni generali server
 
 int inizializza_server() //crea la socket, si mette in ascolto e restituisce il socket descriptor
