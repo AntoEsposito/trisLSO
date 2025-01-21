@@ -1,9 +1,5 @@
 #include "funzioni.h"
 
-//inizializzazione delle liste
-struct nodo_partita *testa_partite = NULL;
-struct nodo_giocatore *testa_giocatori = NULL;
-
 //funzioni di gestione giocatori
 
 void crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd)
@@ -158,7 +154,7 @@ void crea_partita_in_testa(const char *nome_proprietario, const int sd_proprieta
     nuova_testa -> sd_proprietario = sd_proprietario;
     nuova_testa -> stato = NUOVA_CREAZIONE;
     nuova_testa -> next_node = testa_partite;
-    if(testa_partite -> stato == NUOVA_CREAZIONE) testa_partite -> stato = IN_ATTESA;
+    if(testa_partite != NULL && testa_partite -> stato == NUOVA_CREAZIONE) testa_partite -> stato = IN_ATTESA;
 
     testa_partite = nuova_testa;
 }
@@ -259,12 +255,14 @@ void partita(struct nodo_partita *dati_partita)
         while (esito == '0') //non è il terminatore \0 ma il carattere 0
         {
             //inizia il proprietario
+            if (send(sd_proprietario, "Tocca a te\n", 11, 0) <= 0) error_handler(sd_proprietario);
             if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
             if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
             if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
             if (esito != '0') break;
 
             //turno dell'avversario
+            if (send(sd_avversario, "Tocca a te\n", 11, 0) <= 0) error_handler(sd_avversario);
             if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
             if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
             if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
@@ -387,14 +385,14 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
         char sconfitte[3]; sprintf(sconfitte, "%u", dati_giocatore -> sconfitte);
         char pareggi[3]; sprintf(pareggi, "%u", dati_giocatore -> pareggi);
 
-        strcpy(outbuffer, dati_giocatore -> nome);
+        strcat(outbuffer, dati_giocatore -> nome);
         strcat(outbuffer, "\nvittorie: "); strcat(outbuffer, vittorie);
         strcat(outbuffer, "\nsconfitte: "); strcat(outbuffer, sconfitte);
         strcat(outbuffer, "\npareggi: "); strcat(outbuffer, pareggi);
 
         if (send(sd_giocatore, outbuffer, strlen(outbuffer), 0) <= 0) error_handler(sd_giocatore);
         invia_partite(sd_giocatore);
-        if (send(sd_giocatore, "Unisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una e \"esci\" per uscire\n", 109, 0) <= 0) error_handler(sd_giocatore);
+        if (send(sd_giocatore, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una e \"esci\" per uscire\n", 110, 0) <= 0) error_handler(sd_giocatore);
         if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0) error_handler(sd_giocatore);
 
         inbuffer[0] = toupper(inbuffer[0]);
@@ -468,7 +466,7 @@ void invia_partite(const int client_sd)
 
     char stato_partita[32];
 
-    if(tmp == NULL) send(client_sd, "Non ci sono partite attive al momento\n", 38, 0);
+    if(tmp == NULL) send(client_sd, "\nNon ci sono partite attive al momento\n", 39, 0);
     //anche questa funzione non fa error checking in quanto signal handler
     else
     {
@@ -491,7 +489,7 @@ void invia_partite(const int client_sd)
                     break;
             }
 
-            strcat(outbuffer, "Partita di "); strcat(outbuffer, tmp -> proprietario); strcat(outbuffer, "\n");
+            strcat(outbuffer, "\nPartita di "); strcat(outbuffer, tmp -> proprietario); strcat(outbuffer, "\n");
             strcat(outbuffer, "Avversario: "); strcat(outbuffer, tmp -> avversario); strcat(outbuffer, "\n");
             strcat(outbuffer, "Stato: "); strcat(outbuffer, stato_partita);
 
@@ -501,7 +499,6 @@ void invia_partite(const int client_sd)
                 sprintf(stringa_indice, "%u", indice);
                 strcat(outbuffer, " || ID: "); strcat(outbuffer, stringa_indice);
             }
-            strcat(outbuffer, "\n");
             send(client_sd, outbuffer, strlen(outbuffer), 0);
 
             tmp = tmp -> next_node;

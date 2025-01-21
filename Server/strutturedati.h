@@ -7,6 +7,7 @@
 #define MAXPLAYER 16 //il nome di un player può essere lungo massimo 15 caratteri
 #define MAXOUT 128 //dimensione del buffer che usa il server per mandare messaggi
 #define MAXIN 32 //dimensione del buffer usato dal server per ricevere messaggi
+#define MAXTHREAD 20 //possono esistere massimo 20 thread in contemporanea
 
 enum stato_partita
 {
@@ -42,7 +43,7 @@ struct nodo_partita
     struct nodo_partita *next_node;
 };
 
-//liste che saranno gestite dai thread (inizializzate in funzioni.c)
+//liste che saranno gestite dai thread (inizializzate in main.c)
 extern struct nodo_partita *testa_partite;
 extern struct nodo_giocatore *testa_giocatori;
 
