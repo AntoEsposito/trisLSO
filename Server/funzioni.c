@@ -239,43 +239,64 @@ void partita(struct nodo_partita *dati_partita)
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
     avversario -> stato = IN_PARTITA;
 
-    dati_partita -> stato = IN_CORSO;
-    segnala_cambiamento_partite();
-
-    char giocata = '\0';
-    char esito = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
-    //'0' = ancora in corso '1' = vince proprietario, '2' = vince avversario, '3' = pareggio
-
-    //inizia la partita
-    while (esito == '0') //non è il terminatore \0 ma il carattere 0
+    while (true) //si esce da questo ciclo quando la richiesta di rivincita viene rifiutata
     {
-        //inizia il proprietario
-        if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
-        if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
-        if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
-        if (esito != '0') break;
+        dati_partita -> stato = IN_CORSO;
+        segnala_cambiamento_partite();
 
-        //turno dell'avversario
-        if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
-        if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
-        if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+        char giocata = '\0';
+        char esito = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
+        //'0' = ancora in corso '1' = vince proprietario, '2' = vince avversario, '3' = pareggio
+
+        //inizia la partita
+        while (esito == '0') //non è il terminatore \0 ma il carattere 0
+        {
+            //inizia il proprietario
+            if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+            if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
+            if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
+            if (esito != '0') break;
+
+            //turno dell'avversario
+            if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
+            if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+        }
+        //si aggiornano i contatori dei giocatori
+        switch (esito)
+        {
+            case '1':
+                proprietario -> vittorie++;
+                avversario -> sconfitte++;
+            case '2': 
+                proprietario -> sconfitte++;
+                avversario -> vittorie++;
+            default:
+                proprietario -> pareggi++;
+                avversario -> pareggi++;
+        }
+        dati_partita -> stato = TERMINATA;
+        segnala_cambiamento_partite();
+
+        //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
+        char risposta = '\0';
+        if (send(sd_proprietario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_proprietario);
+        if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);
+        risposta = toupper(risposta);
+        
+        if (risposta == 'N') if (send(sd_avversario, "Rivincita rifiutata\n", 20, 0) <= 0) error_handler(sd_avversario);
+        if (send(sd_avversario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_avversario);
+        if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);
+        risposta = toupper(risposta);
+
+        if(risposta == 'N') //si torna alla lobby
+        {
+            if (send(sd_proprietario, "Rivincita rifiutata\n", 20, 0) <= 0) error_handler(sd_proprietario);
+            proprietario -> stato = IN_LOBBY;
+            avversario -> stato = IN_LOBBY;
+            break;
+        }
     }
-    //partita finita, si aggiornano i contatori dei giocatori
-    switch (esito)
-    {
-        case '1':
-            proprietario -> vittorie++;
-            avversario -> sconfitte++;
-        case '2': 
-            proprietario -> sconfitte++;
-            avversario -> vittorie++;
-        default:
-            proprietario -> pareggi++;
-            avversario -> pareggi++;
-    }
-    dati_partita -> stato = TERMINATA;
-    segnala_cambiamento_partite();
-    //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
 }
 void cancella_partita(struct nodo_partita *nodo)
 {
@@ -347,24 +368,23 @@ void error_handler(const int sd_giocatore)
 }
 void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocatore)
 {
-    char inbuffer[MAXIN];
-    memset(inbuffer, 0, MAXIN);
-    char outbuffer[MAXOUT];
-    memset(outbuffer, 0, MAXOUT);
+    char inbuffer[MAXIN]; //contiene le "scelte" del giocatore
+    char outbuffer[MAXOUT]; //contiene le statistiche del giocatore sottoforma di un'unica stringa
     
-    //conversione in stringhe delle statistiche del giocatore
-    char vittorie[3]; sprintf(vittorie, "%u", dati_giocatore -> vittorie);
-    char sconfitte[3]; sprintf(sconfitte, "%u", dati_giocatore -> sconfitte);
-    char pareggi[3]; sprintf(pareggi, "%u", dati_giocatore -> pareggi);
-
-    invia_partite(sd_giocatore);
-    strcpy(outbuffer, dati_giocatore -> nome);
-    strcat(outbuffer, "\nvittorie: "); strcat(outbuffer, vittorie);
-    strcat(outbuffer, "\nsconfitte: "); strcat(outbuffer, sconfitte);
-    strcat(outbuffer, "\npareggi: "); strcat(outbuffer, pareggi);
-
     while (true)
     {
+        memset(inbuffer, 0, MAXIN);
+        memset(outbuffer, 0, MAXOUT);
+        //conversione in stringhe delle statistiche del giocatore
+        char vittorie[3]; sprintf(vittorie, "%u", dati_giocatore -> vittorie);
+        char sconfitte[3]; sprintf(sconfitte, "%u", dati_giocatore -> sconfitte);
+        char pareggi[3]; sprintf(pareggi, "%u", dati_giocatore -> pareggi);
+
+        strcpy(outbuffer, dati_giocatore -> nome);
+        strcat(outbuffer, "\nvittorie: "); strcat(outbuffer, vittorie);
+        strcat(outbuffer, "\nsconfitte: "); strcat(outbuffer, sconfitte);
+        strcat(outbuffer, "\npareggi: "); strcat(outbuffer, pareggi);
+
         if (send(sd_giocatore, outbuffer, strlen(outbuffer), 0) <= 0) error_handler(sd_giocatore);
         invia_partite(sd_giocatore);
         if (send(sd_giocatore, "Unisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una e \"esci\" per uscire\n", 109, 0) <= 0) error_handler(sd_giocatore);
@@ -373,13 +393,13 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
         inbuffer[0] = toupper(inbuffer[0]);
         if (strcmp(inbuffer, "Esci") == 0) break;
 
-        crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
-        struct nodo_partita *nodo_partita = testa_partite;
-
-        if (strcmp(inbuffer, "Crea") == 0) partita(nodo_partita);
+        if (strcmp(inbuffer, "Crea") == 0) 
+        {
+            crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
+            struct nodo_partita *nodo_partita = testa_partite;
+            partita(nodo_partita);
+        }
         else (unione_partita(trova_partita_da_indice(atoi(inbuffer)), sd_giocatore, dati_giocatore -> nome));
-
-        memset(inbuffer, 0, MAXIN);
     }
 }
 void* thread_giocatore(void *sd)
