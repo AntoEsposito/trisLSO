@@ -35,6 +35,10 @@ void segnala_nuovo_giocatore();
 //funzioni di gestione partite
 //crea un nodo partita e lo mette in testa alla lista
 void crea_partita_in_testa(const char *nome_proprietario, const int id_proprietario);
+//restituisce la partita giocata dal giocatore se esiste, NULL altrimenti
+struct nodo_partita* trova_partita_da_sd(const int sd);
+//restituisce la partita in attesa con l'id in input
+struct nodo_partita* trova_partita_da_indice(const unsigned int indice);
 //se il proprietario accetta la richiesta di unione alla partita inserisce i dati dell'avversario nel nodo partita e restituisce vero, falso altrimenti
 bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
 //funzione che gestisce la partita tra 2 giocatori
@@ -47,10 +51,14 @@ void segnala_cambiamento_partite();
 //crea socket con protocollo TCP, si mette in ascolto sulla porta 8080 e restituisce socket descriptor del server
 int inizializza_server();
 //gestisce gli errori di rete eliminando il nodo del giocatore che ha causato l'errore, l'eventuale nodo partita e manda SIGALRM al relativo thread
-void error_handler(struct nodo_partita *partita, const char *nome_giocatore);
+void error_handler(const int sd_giocatore);
+//funzione che gestisce il ciclo di vita di un giocatore
+void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocatore);
+//start function del thread che gestisce un client
+void* thread_giocatore(void *sd_giocatore);
 //funzioni di signal handling
 //invia le informazioni sulle partite al client appena entrato e ogni volta che riceve SIGUSR1
-void invia_partite();
+void invia_partite(const int client_sd);
 //gestisce il segnale SIGUSR2 avvisando tutti i giocatori in lobby dell'entrata di un nuovo giocatore
 void handler_nuovo_giocatore();
 //gestisce il segnale SIGALRM facendo chiudere al thread la sua socket e chiamando pthread_exit()

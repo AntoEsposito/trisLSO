@@ -39,13 +39,13 @@ bool esiste_giocatore(const char *nome_giocatore)
     } 
     return false;
 }
-struct nodo_giocatore* trova_giocatore_da_nome(const char *nome_giocatore)
+struct nodo_giocatore* trova_giocatore_da_sd(const int sd)
 {
     struct nodo_giocatore *tmp = testa_giocatori;
 
     while (tmp != NULL)
     {
-        if (strcmp(tmp -> nome, nome_giocatore) == 0) return tmp;
+        if (tmp -> sd_giocatore == sd) return tmp;
         tmp = tmp -> next_node;
     } 
     return NULL; //improbabile
@@ -165,6 +165,27 @@ void crea_partita_in_testa(const char *nome_proprietario, const int sd_proprieta
 
     testa_partite = nuova_testa;
 }
+struct nodo_partita* trova_partita_da_sd(const int sd)
+{
+    struct nodo_partita *tmp = testa_partite;
+    while(tmp != NULL)
+    {
+        if(tmp -> sd_proprietario == sd || tmp -> sd_avversario == sd) return tmp;
+        tmp = tmp -> next_node;
+    }
+    return NULL;
+}
+struct nodo_partita* trova_partita_da_indice(const unsigned int indice)
+{
+    unsigned int indice_partita = 0;
+    struct nodo_partita *tmp = testa_partite;
+    while (tmp != NULL)
+    {
+        if (tmp -> stato == IN_ATTESA || tmp -> stato == NUOVA_CREAZIONE) indice_partita++;
+        if (indice_partita == indice) return tmp;
+    }
+    return NULL;
+}
 bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario)
 {
     const int sd_proprietario = partita -> sd_proprietario;
@@ -175,12 +196,12 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
 
     if(send(sd_proprietario, buffer, strlen(buffer), 0) <= 0) //il proprietario si è disconnesso o simili
     {
-        error_handler(partita, partita -> proprietario);
+        error_handler(partita -> sd_proprietario);
         return false;
     }
     if(recv(sd_proprietario, &risposta, 1, 0) <= 0)
     {
-        error_handler(partita, partita -> proprietario);
+        error_handler(partita -> sd_proprietario);
         return false;
     }
 
@@ -189,6 +210,7 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
     {
         strcpy(partita -> avversario, nome_avversario);
         partita -> sd_avversario = sd_avversario;
+        if (send(sd_proprietario, "Richiesta accettata, inizia la partita\n", 39, 0) <= 0) error_handler(partita -> sd_proprietario);
         return true;
     }
     else return false;
@@ -202,21 +224,24 @@ void partita(struct nodo_partita *dati_partita)
     char nome_proprietario[MAXPLAYER];
     memset(nome_proprietario, 0, MAXPLAYER);
     strcpy(nome_proprietario, dati_partita -> proprietario);
-    struct nodo_giocatore *proprietario = trova_giocatore_da_nome(nome_proprietario);
+
+    struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
 
     //il proprietario si blocca su questa recv finchè la funzione di unione non manda un messaggio di conferma unione
-    if (recv(sd_proprietario, buffer, MAXPARTITA, 0) <= 0) error_handler(dati_partita, nome_proprietario);
+    if (recv(sd_proprietario, buffer, MAXPARTITA, 0) <= 0) error_handler(sd_proprietario);
 
     const int sd_avversario = dati_partita -> sd_avversario;
     char nome_avversario[MAXPLAYER];
     memset(nome_avversario, 0, MAXPLAYER);
     strcpy(nome_avversario, dati_partita -> avversario);
-    struct nodo_giocatore *avversario = trova_giocatore_da_nome(nome_avversario);
+
+    struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
     avversario -> stato = IN_PARTITA;
 
-    //TODO : funzione che segnala cambiamento nello stato partite mandando SIGUSR2
     dati_partita -> stato = IN_CORSO;
+    segnala_cambiamento_partite();
+
     char giocata = '\0';
     char esito = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
     //'0' = ancora in corso '1' = vince proprietario, '2' = vince avversario, '3' = pareggio
@@ -225,15 +250,15 @@ void partita(struct nodo_partita *dati_partita)
     while (esito == '0') //non è il terminatore \0 ma il carattere 0
     {
         //inizia il proprietario
-        if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(dati_partita, nome_proprietario);
-        if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(dati_partita, nome_proprietario);
-        if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(dati_partita, nome_avversario);
+        if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+        if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
+        if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
         if (esito != '0') break;
 
         //turno dell'avversario
-        if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(dati_partita, nome_avversario);
-        if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(dati_partita, nome_avversario);
-        if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(dati_partita, nome_proprietario);
+        if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
+        if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
+        if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
     }
     //partita finita, si aggiornano i contatori dei giocatori
     switch (esito)
@@ -248,9 +273,9 @@ void partita(struct nodo_partita *dati_partita)
             proprietario -> pareggi++;
             avversario -> pareggi++;
     }
-    dati_partita -> stato = IN_CORSO;
-    //TODO: anche qui viene chiamata la funzio e che manda SIGUSR2
-    //partita finita, viene chiamata una funzione che chiede se si vuole la rivincita o meno
+    dati_partita -> stato = TERMINATA;
+    segnala_cambiamento_partite();
+    //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
 }
 void cancella_partita(struct nodo_partita *nodo)
 {
@@ -278,7 +303,7 @@ void segnala_cambiamento_partite()
 
     while (tmp != NULL)
     {
-        if(tmp -> stato == IN_LOBBY)
+        if (tmp -> stato == IN_LOBBY)
         {
             tid_ricevente = tmp -> tid_giocatore;
             if (tid_ricevente != tid_mittente) pthread_kill(tid_ricevente, SIGUSR1);
@@ -310,18 +335,64 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
 
     return sd;
 }
-void error_handler(struct nodo_partita *partita, const char *nome_giocatore)
+void error_handler(const int sd_giocatore)
 {
-    if (partita != NULL) cancella_partita(partita);
 
-    struct nodo_giocatore *giocatore = trova_giocatore_da_nome(nome_giocatore);
+    struct nodo_giocatore *giocatore = trova_giocatore_da_sd(sd_giocatore);
     const pthread_t tid = giocatore -> tid_giocatore;
+    struct nodo_partita *partita = trova_partita_da_sd(sd_giocatore);
 
-    if (giocatore != NULL) 
+    if (partita != NULL) cancella_partita(partita);
+    if (giocatore != NULL) pthread_kill(tid, SIGALRM);
+}
+void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocatore)
+{
+    char inbuffer[MAXIN];
+    memset(inbuffer, 0, MAXIN);
+    char outbuffer[MAXOUT];
+    memset(outbuffer, 0, MAXOUT);
+    
+    //conversione in stringhe delle statistiche del giocatore
+    char vittorie[3]; sprintf(vittorie, "%u", dati_giocatore -> vittorie);
+    char sconfitte[3]; sprintf(sconfitte, "%u", dati_giocatore -> sconfitte);
+    char pareggi[3]; sprintf(pareggi, "%u", dati_giocatore -> pareggi);
+
+    invia_partite(sd_giocatore);
+    strcpy(outbuffer, dati_giocatore -> nome);
+    strcat(outbuffer, "\nvittorie: "); strcat(outbuffer, vittorie);
+    strcat(outbuffer, "\nsconfitte: "); strcat(outbuffer, sconfitte);
+    strcat(outbuffer, "\npareggi: "); strcat(outbuffer, pareggi);
+
+    while (true)
     {
-        pthread_kill(tid, SIGALRM);
-        cancella_giocatore(giocatore);
+        if (send(sd_giocatore, outbuffer, strlen(outbuffer), 0) <= 0) error_handler(sd_giocatore);
+        invia_partite(sd_giocatore);
+        if (send(sd_giocatore, "Unisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una e \"esci\" per uscire\n", 109, 0) <= 0) error_handler(sd_giocatore);
+        if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0) error_handler(sd_giocatore);
+
+        inbuffer[0] = toupper(inbuffer[0]);
+        if (strcmp(inbuffer, "Esci") == 0) break;
+
+        crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
+        struct nodo_partita *nodo_partita = testa_partite;
+
+        if (strcmp(inbuffer, "Crea") == 0) partita(nodo_partita);
+        else (unione_partita(trova_partita_da_indice(atoi(inbuffer)), sd_giocatore, dati_giocatore -> nome));
+
+        memset(inbuffer, 0, MAXIN);
     }
+}
+void* thread_giocatore(void *sd)
+{
+    const int sd_giocatore = *((int *)sd); //cast del puntatore void a int e deferenziazione
+    registra_giocatore(sd_giocatore);
+    struct nodo_giocatore *giocatore = trova_giocatore_da_sd(sd_giocatore);
+
+    funzione_lobby(sd_giocatore, giocatore);
+    close(sd_giocatore);
+    
+    cancella_giocatore(giocatore);
+    pthread_exit(NULL);
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di signal handling
 
@@ -329,6 +400,7 @@ void sigalrm_handler()
 {
     struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
     close(giocatore -> sd_giocatore);
+    cancella_giocatore(giocatore);
     pthread_exit(NULL);
 }
 void handler_nuovo_giocatore()
@@ -352,12 +424,9 @@ void handler_nuovo_giocatore()
         tmp = tmp -> next_node;
     }
 }
-void invia_partite()
+void invia_partite(const int client_sd)
 {
-    const pthread_t tid = pthread_self();
     struct nodo_partita *tmp = testa_partite;
-    struct nodo_giocatore *giocatore = trova_giocatore_da_tid(tid);
-    const int client_sd = giocatore -> sd_giocatore;
 
     char outbuffer[MAXOUT];
     memset(outbuffer, 0, MAXOUT);
@@ -406,6 +475,5 @@ void invia_partite()
 
             tmp = tmp -> next_node;
         }
-        send(client_sd, "Unisciti a una partita in attesa scrivendo il relativo ID o scrivi \"crea\" per crearne una\n", 90, 0);
     }
 }
