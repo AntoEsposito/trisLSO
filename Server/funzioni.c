@@ -138,19 +138,6 @@ void cancella_giocatore(struct nodo_giocatore *nodo)
         free(nodo);
     }
 }
-void segnala_nuovo_giocatore()
-{ 
-    const pthread_t tid_mittente = pthread_self();
-    pthread_t tid_ricevente = 0;
-    struct nodo_giocatore *tmp = testa_giocatori;
-
-    while (tmp != NULL)
-    {
-        tid_ricevente = tmp -> tid_giocatore;
-        if (tid_ricevente != tid_mittente && tmp -> stato == IN_LOBBY) pthread_kill(tid_ricevente, SIGUSR2);
-        tmp = tmp -> next_node;
-    }
-}
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di gestione partite
 
 struct nodo_partita* crea_partita_in_testa(const char *nome_proprietario, const int sd_proprietario)
@@ -335,17 +322,27 @@ void cancella_partita(struct nodo_partita *nodo)
 void segnala_cambiamento_partite()
 { 
     const pthread_t tid_mittente = pthread_self();
-    pthread_t tid_ricevente;
+    pthread_t tid_ricevente = 0;
     struct nodo_giocatore *tmp = testa_giocatori;
 
     while (tmp != NULL)
     {
-        if (tmp -> stato == IN_LOBBY)
-        {
-            tid_ricevente = tmp -> tid_giocatore;
-            if (tid_ricevente != tid_mittente) pthread_kill(tid_ricevente, SIGUSR1);
-            tmp = tmp -> next_node;
-        }
+        tid_ricevente = tmp -> tid_giocatore;
+        if (tid_ricevente != tid_mittente && tmp -> stato == IN_LOBBY) pthread_kill(tid_ricevente, SIGUSR1);
+        tmp = tmp -> next_node;
+    }
+}
+void segnala_nuovo_giocatore()
+{ 
+    const pthread_t tid_mittente = pthread_self();
+    pthread_t tid_ricevente = 0;
+    struct nodo_giocatore *tmp = testa_giocatori;
+
+    while (tmp != NULL)
+    {
+        tid_ricevente = tmp -> tid_giocatore;
+        if (tid_ricevente != tid_mittente && tmp -> stato == IN_LOBBY) pthread_kill(tid_ricevente, SIGUSR2);
+        tmp = tmp -> next_node;
     }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni generali server
@@ -403,7 +400,6 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
 
         if (send(sd_giocatore, outbuffer, strlen(outbuffer), 0) <= 0) error_handler(sd_giocatore);
         invia_partite(sd_giocatore);
-        if (send(sd_giocatore, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una e \"esci\" per uscire\n", 110, 0) <= 0) error_handler(sd_giocatore);
         if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0) error_handler(sd_giocatore);
 
         inbuffer[0] = toupper(inbuffer[0]);
@@ -475,7 +471,7 @@ void invia_partite(const int client_sd)
 
     char stato_partita[32];
 
-    if(tmp == NULL) send(client_sd, "\nNon ci sono partite attive al momento\n", 39, 0);
+    if(tmp == NULL) send(client_sd, "\nNon ci sono partite attive al momento, scrivi \"crea\" per crearne una o \"esci\" per uscire\n", 90, 0);
     //anche questa funzione non fa error checking in quanto signal handler
     else
     {
@@ -509,6 +505,7 @@ void invia_partite(const int client_sd)
                 strcat(outbuffer, " || ID: "); strcat(outbuffer, stringa_indice);
             }
             send(client_sd, outbuffer, strlen(outbuffer), 0);
+            send(client_sd, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una o \"esci\" per uscire\n", 110, 0);
 
             tmp = tmp -> next_node;
         }
