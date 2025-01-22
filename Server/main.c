@@ -18,9 +18,18 @@ int main()
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     //handler per i segnali che gestiranno i thread
-    signal(SIGUSR1, invia_partite);
-    signal(SIGUSR2, handler_nuovo_giocatore);
-    signal(SIGALRM, sigalrm_handler);
+    struct sigaction *sa = (struct sigaction *) malloc(sizeof(struct sigaction));
+    memset(sa, 0, sizeof(struct sigaction));
+    sa -> sa_handler = invia_partite;
+    sa -> sa_flags = SA_RESTART; //in modo che i segnali non vengano bloccati da eventuali read
+    
+    sigaction(SIGUSR1, sa, NULL);
+    sa -> sa_handler = handler_nuovo_giocatore;
+    sigaction(SIGUSR2, sa, NULL);
+    sa -> sa_handler = sigalrm_handler;
+    sigaction(SIGALRM, sa, NULL);
+
+    free(sa);
 
     //il server può terminare solo inviandogli esplicitamente un segnale che lo termina
     while (true)

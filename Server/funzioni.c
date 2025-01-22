@@ -92,6 +92,7 @@ char* verifica_giocatore(const int client_sd)
         }
 
         if(!(esiste_giocatore(giocatore))) break;
+        memset(giocatore, 0, MAXPLAYER);
 
         if (send(client_sd, "Il nome selezionato è già utilizzato\n", 39, 0) <= 0)
         {
@@ -140,13 +141,13 @@ void cancella_giocatore(struct nodo_giocatore *nodo)
 void segnala_nuovo_giocatore()
 { 
     const pthread_t tid_mittente = pthread_self();
-    pthread_t tid_ricevente;
+    pthread_t tid_ricevente = 0;
     struct nodo_giocatore *tmp = testa_giocatori;
 
     while (tmp != NULL)
     {
         tid_ricevente = tmp -> tid_giocatore;
-        if (tid_ricevente != tid_mittente) pthread_kill(tid_ricevente, SIGUSR2);
+        if (tid_ricevente != tid_mittente && tmp -> stato == IN_LOBBY) pthread_kill(tid_ricevente, SIGUSR2);
         tmp = tmp -> next_node;
     }
 }
@@ -233,6 +234,7 @@ void partita(struct nodo_partita *dati_partita)
 
     struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
+    segnala_cambiamento_partite();
 
     //il proprietario si blocca su questo ciclo finchè la funzione di unione non manda un messaggio di conferma unione (39 byte)
     while (true)
@@ -444,23 +446,20 @@ void sigalrm_handler()
 }
 void handler_nuovo_giocatore()
 {
-    const pthread_t tid = pthread_self();
     struct nodo_giocatore *tmp = testa_giocatori;
 
     char messaggio[MAXOUT];
     memset(messaggio, 0, MAXOUT);
-    strcat(messaggio, tmp -> nome); strcat(messaggio, " è appena entrato in lobby!\n");
-    int sd;
-    
-    while(tmp != NULL)
+    if (tmp != NULL) //controllo teoricamente inutile
     {
-        if (tmp -> tid_giocatore != tid)
-        {
-            sd = tmp -> sd_giocatore;
-            //l'handler ignora gli errori per essere il più veloce possibile
-            send(sd, messaggio, strlen(messaggio), 0);
-        }
-        tmp = tmp -> next_node;
+        strcat(messaggio, tmp -> nome); 
+        strcat(messaggio, " è appena entrato in lobby!\n");
+
+        struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
+        const int sd = giocatore -> sd_giocatore;
+
+        //l'handler ignora gli errori per essere il più veloce possibile
+        send(sd, messaggio, strlen(messaggio), 0);
     }
 }
 void invia_partite(const int client_sd)

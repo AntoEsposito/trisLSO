@@ -20,8 +20,6 @@
 struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd);
 //verifica se esiste un nodo con lo stesso nome dato in input
 bool esiste_giocatore(const char *nome_giocatore);
-//restituisce il nodo col nome dato in input
-struct nodo_giocatore* trova_giocatore_da_nome(const char *nome_giocatore);
 //restituisce il nodo del giocatore gestito dal tid dato in input
 struct nodo_giocatore* trova_giocatore_da_tid(const pthread_t tid);
 //restituisce il nome del giocatore se la registrazione va a buon fine
