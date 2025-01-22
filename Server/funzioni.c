@@ -221,6 +221,7 @@ void partita(struct nodo_partita *dati_partita)
 
     struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
+    if (send(sd_proprietario, "\nPartita creata, in attesa di un avversario...", 46, 0) <= 0) error_handler(sd_proprietario);
     segnala_cambiamento_partite();
 
     //il proprietario si blocca su questo ciclo finchè la funzione di unione non manda un messaggio di conferma unione (39 byte)
@@ -404,8 +405,7 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
 
         inbuffer[0] = toupper(inbuffer[0]);
         if (strcmp(inbuffer, "Esci") == 0) break;
-
-        if (strcmp(inbuffer, "Crea") == 0) 
+        else if (strcmp(inbuffer, "Crea") == 0) 
         {
             struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
             partita(nodo_partita);
@@ -493,7 +493,7 @@ void invia_partite(const int client_sd)
                     strcpy(stato_partita, "Terminata");
                     break;
             }
-
+            strcat(outbuffer, "\n\nLISTA PARTITE");
             strcat(outbuffer, "\nPartita di "); strcat(outbuffer, tmp -> proprietario); strcat(outbuffer, "\n");
             strcat(outbuffer, "Avversario: "); strcat(outbuffer, tmp -> avversario); strcat(outbuffer, "\n");
             strcat(outbuffer, "Stato: "); strcat(outbuffer, stato_partita);
