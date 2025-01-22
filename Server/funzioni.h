@@ -17,7 +17,7 @@
 
 //funzioni di gestione giocatori
 //crea un nodo giocatore e lo aggiunge in testa
-void crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd);
+struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd);
 //verifica se esiste un nodo con lo stesso nome dato in input
 bool esiste_giocatore(const char *nome_giocatore);
 //restituisce il nodo col nome dato in input
@@ -27,14 +27,14 @@ struct nodo_giocatore* trova_giocatore_da_tid(const pthread_t tid);
 //restituisce il nome del giocatore se la registrazione va a buon fine
 char* verifica_giocatore(const int client_sd);
 //aggiunge un nuovo giocatore in lista
-void registra_giocatore(const int client_sd);
-//elimina un nodo giocatore dalla lista e restituisce la nuova testa
+struct nodo_giocatore* registra_giocatore(const int client_sd);
+//elimina un nodo giocatore dalla lista
 void cancella_giocatore(struct nodo_giocatore *nodo);
 //invia il segnale SIGUSR2 a tutti gli altri thread con giocatore in lobby
 void segnala_nuovo_giocatore();
 //funzioni di gestione partite
 //crea un nodo partita e lo mette in testa alla lista
-void crea_partita_in_testa(const char *nome_proprietario, const int id_proprietario);
+struct nodo_partita* crea_partita_in_testa(const char *nome_proprietario, const int id_proprietario);
 //restituisce la partita giocata dal giocatore se esiste, NULL altrimenti
 struct nodo_partita* trova_partita_da_sd(const int sd);
 //restituisce la partita in attesa con l'id in input
@@ -43,7 +43,7 @@ struct nodo_partita* trova_partita_da_indice(const unsigned int indice);
 bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
 //funzione che gestisce la partita tra 2 giocatori
 void partita(struct nodo_partita *dati_partita);
-//elimina un nodo partita dalla lista e restituisce la nuova testa
+//elimina un nodo partita dalla lista
 void cancella_partita(struct nodo_partita *nodo);
 //invia SIGUSR2 a tutti i thread con giocatori in lobby
 void segnala_cambiamento_partite();
@@ -63,5 +63,10 @@ void invia_partite(const int client_sd);
 void handler_nuovo_giocatore();
 //gestisce il segnale SIGALRM facendo chiudere al thread la sua socket e chiamando pthread_exit()
 void sigalrm_handler();
+//funzioni per la creazione e distruzione dei thread
+//crea il nodo per contenere il tid del thread e lo mette in testa alla lista
+struct nodo_tid* crea_nodo_tid();
+//elimina un nodo tid dalla lista
+void cancella_nodo_tid(const pthread_t tid);
 
 #endif

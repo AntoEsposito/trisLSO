@@ -3,6 +3,7 @@
 //inizializzazione delle liste
 struct nodo_partita *testa_partite = NULL;
 struct nodo_giocatore *testa_giocatori = NULL;
+struct nodo_tid *testa_thread = NULL;
 
 int main()
 {
@@ -21,8 +22,6 @@ int main()
     signal(SIGUSR2, handler_nuovo_giocatore);
     signal(SIGALRM, sigalrm_handler);
 
-    pthread_t tid_array[MAXTHREAD];
-    unsigned short int indice_tid = 0;
     //il server può terminare solo inviandogli esplicitamente un segnale che lo termina
     while (true)
     {
@@ -31,12 +30,13 @@ int main()
             perror("accept error");
             continue;
         }
-        if (pthread_create(&tid_array[indice_tid], &attr, thread_giocatore, &client_sd) != 0)
+        struct nodo_tid *nodo = crea_nodo_tid();
+        if (pthread_create(&(nodo->tid), &attr, thread_giocatore, &client_sd) != 0)
         {
             perror("thread creation error");
+            cancella_nodo_tid(nodo -> tid);
             continue;
         }
-        indice_tid++;
     }
     return 0;
 }

@@ -42,9 +42,15 @@ struct nodo_partita
     enum stato_partita stato;
     struct nodo_partita *next_node;
 };
+struct nodo_tid
+{
+    pthread_t tid;
+    struct nodo_tid *next_node;
+};
 
 //liste che saranno gestite dai thread (inizializzate in main.c)
 extern struct nodo_partita *testa_partite;
 extern struct nodo_giocatore *testa_giocatori;
+extern struct nodo_tid *testa_thread;
 
 #endif
