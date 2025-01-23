@@ -215,6 +215,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
     struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
     if (send(sd_proprietario, "Partita creata, in attesa di un avversario...", 45, 0) <= 0) error_handler(sd_proprietario);
+    segnala_cambiamento_partite();
 
     //TODO addormentare il thread, verrà svegliato da funzione_lobby()
 
@@ -430,11 +431,20 @@ void segnala_nuovo_giocatore()
 int inizializza_server() //crea la socket, si mette in ascolto e restituisce il socket descriptor
 {
     int sd;
+    unsigned short int opt = 1; //1 = abilita, 0 = disabilita
     struct sockaddr_in address;
     socklen_t lenght = sizeof(struct sockaddr_in);
 
-    if ((sd = socket(AF_INET, SOCK_STREAM, 0))<0)
+    if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         perror("socket creation error"), exit(EXIT_FAILURE);
+
+    //imposta la socket attivando SO_REUSEADDR che permette di riavviare velocemente il server in caso di crash o riavvii
+    if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == 0) 
+    {
+        perror("Errore setsockopt");
+        close(sd);
+        exit(EXIT_FAILURE);
+    }
 
     memset(&address, 0, lenght);
     address.sin_family = AF_INET;

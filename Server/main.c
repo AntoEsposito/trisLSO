@@ -10,15 +10,20 @@ int main()
     //le send del server non terminano mai col carattere \n, se ne occupa il codice client
     int sd = inizializza_server();
     int client_sd;
-    struct sockaddr_in client_address; //socket address dei client
+    struct sockaddr_in client_address;
     socklen_t lenght = sizeof(struct sockaddr_in);
+
+    //rappresenta il tempo massimo dopo il quale le socket vengono considerate inattive e quindi automaticamente chiuse
+    struct timeval timer;
+    timer.tv_sec = 120; //secondi, lo abbasseremo dopo il testing
+    timer.tv_usec = 0; //millisecondi
 
     //i thread sono creati in stato detatched
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-    //handler per i segnali che gestiranno i thread
+    //handler per i segnali che gestiranno i thread, impostati col flag SA_RESTART
     struct sigaction *sa = (struct sigaction *) malloc(sizeof(struct sigaction)); //visual studio da errore ma compila
     memset(sa, 0, sizeof(struct sigaction));
     sa -> sa_flags = SA_RESTART; //in modo che i segnali non vengano bloccati da eventuali read
@@ -39,6 +44,10 @@ int main()
             perror("accept error\n");
             continue;
         }
+        //timer per ricezione
+        setsockopt(client_sd, SOL_SOCKET, SO_RCVTIMEO, &timer, sizeof(timer));
+        //timer per invio
+        setsockopt(client_sd, SOL_SOCKET, SO_SNDTIMEO, &timer, sizeof(timer));
         pthread_t tid;
         if (pthread_create(&tid, &attr, thread_giocatore, &client_sd) != 0)
         {
