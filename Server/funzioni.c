@@ -71,19 +71,17 @@ char* verifica_giocatore(const int client_sd)
     }
 
     if (send(client_sd, "Inserisci il tuo nome per registrarti (max 15 caratteri)", 56, 0) <= 0) 
-        {
-            close(client_sd);
-            free(giocatore);
-            cancella_nodo_tid(pthread_self());
-            pthread_exit(NULL);
-        }
+    {
+        close(client_sd);
+        free(giocatore);
+        cancella_nodo_tid(pthread_self());
+        pthread_exit(NULL);
+    }
 
-        bool nome_trovato = false;
-
-    while (!nome_trovato)
+    bool nome_trovato = true;
+    while (nome_trovato)
     {
         memset(giocatore, 0, MAXPLAYER);
-        
         
         //si occupa il codice del client di verificare che i caratteri inviati siano al massimo 15
         if (recv(client_sd, giocatore, MAXPLAYER, 0) <= 0 )
@@ -94,9 +92,9 @@ char* verifica_giocatore(const int client_sd)
             pthread_exit(NULL);
         }
 
-        if(!(esiste_giocatore(giocatore))) nome_trovato = true;
+        if(!esiste_giocatore(giocatore)) nome_trovato = false;
 
-        if (send(client_sd, "Il nome inserito è già utilizzato, prova un altro nome (max 15 caratteri)", 75, 0) <= 0)
+        if (nome_trovato && send(client_sd, "Il nome inserito è già utilizzato, prova un altro nome (max 15 caratteri)", 75, 0) <= 0)
         {
             close(client_sd);
             free(giocatore);
@@ -126,8 +124,8 @@ void cancella_giocatore(struct nodo_giocatore *nodo)
 {
     if (nodo != NULL && testa_giocatori == nodo) //significa che si sta cercando di cancellare la testa
     {
-        free(nodo);
         testa_giocatori = testa_giocatori -> next_node;
+        free(nodo);
     }
     else if (nodo != NULL)
     {
@@ -234,14 +232,14 @@ void gioca_partita(struct nodo_partita *dati_partita)
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
     avversario -> stato = IN_PARTITA;
     dati_partita -> stato = IN_CORSO; 
-    segnala_cambiamento_partite();
 
-    bool rivincita_accettata;
+    bool rivincita_accettata = false;
     int round = 0;
 
     do
     {
         dati_partita -> stato = IN_CORSO;
+        segnala_cambiamento_partite();
         round++;
 
         char giocata = '\0';
@@ -285,9 +283,10 @@ void gioca_partita(struct nodo_partita *dati_partita)
         } while (esito == '0');
 
         //scambio dell'esito di vittoria nei round pari
-        if (round%2 == 0){
-            if (esito == 1) esito = 2;
-            else if (esito == 2) esito = 1;
+        if (round%2 == 0)
+        {
+            if (esito == '1') esito = '2';
+            else if (esito == '2') esito = '1';
         }
 
         //si aggiornano i contatori dei giocatori
@@ -304,6 +303,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
                 avversario -> pareggi++;
         }
         dati_partita -> stato = TERMINATA; //non credo importi segnalare a tutti i giocatori in lobby ogni rivincita
+        segnala_cambiamento_partite();
 
         //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
         char risposta = '\0';
@@ -313,9 +313,10 @@ void gioca_partita(struct nodo_partita *dati_partita)
         risposta = toupper(risposta);
         
         if (risposta != 'S') {if (send(sd_proprietario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_proprietario);}
-        else {
-            if (send(sd_avversario, "In attesa di risposta dall'avversario", 37, 0) <= 0) error_handler(sd_avversario);
+        else 
+        {
             if (send(sd_proprietario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_proprietario);  //problema: il proprietario rimane in attesa della risposta dell'avversario senza saperlo
+            if (send(sd_avversario, "In attesa di risposta dall'avversario", 37, 0) <= 0) error_handler(sd_avversario);
             if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);    //si potrebbe aggiungere un timer per mancata risposta
             risposta = toupper(risposta);
         }
@@ -340,8 +341,7 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
     char inbuffer[MAXIN]; //contiene le "scelte" del giocatore
     char outbuffer[MAXOUT]; //contiene tutte le statistiche del giocatore formattate in un'unica stringa
 
-    bool connesso = true;
-    
+    bool connesso = true;   
     do
     {
         memset(inbuffer, 0, MAXIN);
@@ -391,8 +391,8 @@ void cancella_partita(struct nodo_partita *nodo)
 {
     if (nodo != NULL && testa_partite == nodo) //significa che si sta cercando di cancellare la testa
     {
-        free(nodo);
         testa_partite = testa_partite -> next_node;
+        free(nodo);
     }
     else if (nodo != NULL)
     {
