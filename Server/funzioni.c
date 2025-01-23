@@ -60,8 +60,8 @@ struct nodo_giocatore* trova_giocatore_da_tid(const pthread_t tid)
 }
 char* verifica_giocatore(const int client_sd)
 {
-    char *giocatore = (char *) malloc(MAXPLAYER*sizeof(char));
-    if (giocatore == NULL)
+    char *nome_giocatore = (char *) malloc(MAXPLAYER*sizeof(char));
+    if (nome_giocatore == NULL)
     {
         send(client_sd, "errore", 6, 0);
         close(client_sd);
@@ -71,41 +71,41 @@ char* verifica_giocatore(const int client_sd)
     if (send(client_sd, "Inserisci il tuo nome per registrarti (max 15 caratteri)", 56, 0) <= 0) 
     {
         close(client_sd);
-        free(giocatore);
+        free(nome_giocatore);
         pthread_exit(NULL);
     }
 
-    bool nome_trovato = true;
-    while (nome_trovato)
+    bool nome_trovato = false;
+
+    do
     {
-        memset(giocatore, 0, MAXPLAYER);
+        memset(nome_giocatore, 0, MAXPLAYER);
         
         //si occupa il codice del client di verificare che i caratteri inviati siano al massimo 15
-        if (recv(client_sd, giocatore, MAXPLAYER, 0) <= 0 )
+        if (recv(client_sd, nome_giocatore, MAXPLAYER, 0) <= 0 )
         {
             close(client_sd);
-            free(giocatore);
+            free(nome_giocatore);
             pthread_exit(NULL);
         }
 
-        if(!esiste_giocatore(giocatore)) nome_trovato = false;
-
-        if (nome_trovato && send(client_sd, "Il nome inserito è già utilizzato, prova un altro nome (max 15 caratteri)", 75, 0) <= 0)
+        if(!esiste_giocatore(nome_giocatore)) nome_trovato = true;
+        else if (send(client_sd, "Il nome inserito è già utilizzato, prova un altro nome (max 15 caratteri)", 75, 0) <= 0)
         {
             close(client_sd);
-            free(giocatore);
+            free(nome_giocatore);
             pthread_exit(NULL);
         }
-    }
+    } while (!nome_trovato);
 
     if (send(client_sd, "Registrazione completata", 24, 0) <= 0)
     {
         close(client_sd);
-        free(giocatore);
+        free(nome_giocatore);
         pthread_exit(NULL);
     }
 
-    return giocatore;
+    return nome_giocatore;
 }
 struct nodo_giocatore* registra_giocatore(const int client_sd)
 {
@@ -225,7 +225,6 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
     avversario -> stato = IN_PARTITA;
-    dati_partita -> stato = IN_CORSO; 
 
     bool rivincita_accettata = false;
     int round = 0;
@@ -327,6 +326,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
         {
             if (send(sd_avversario, "Rivincita accettata, pronti per il prossimo round", 49, 0) <= 0) error_handler(sd_avversario);
             if (send(sd_proprietario, "Rivincita accettata, pronti per il prossimo round", 49, 0) <= 0) error_handler(sd_proprietario);
+            rivincita_accettata = true;
         }
     } while (rivincita_accettata);
 }
