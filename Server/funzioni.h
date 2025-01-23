@@ -40,10 +40,10 @@ struct nodo_partita* trova_partita_da_indice(const unsigned int indice);
 //se il proprietario accetta la richiesta di unione alla partita inserisce i dati dell'avversario nel nodo partita e restituisce vero, falso altrimenti
 bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
 //funzione che gestisce la partita tra 2 giocatori
-void partita(struct nodo_partita *dati_partita);
+void gioca_partita(struct nodo_partita *dati_partita);
 //elimina un nodo partita dalla lista
 void cancella_partita(struct nodo_partita *nodo);
-//invia SIGUSR2 a tutti i thread con giocatori in lobby
+//invia SIGUSR1 a tutti i thread con giocatori in lobby
 void segnala_cambiamento_partite();
 //funzioni generali server
 //crea socket con protocollo TCP, si mette in ascolto sulla porta 8080 e restituisce socket descriptor del server
@@ -56,7 +56,7 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
 void* thread_giocatore(void *sd_giocatore);
 //funzioni di signal handling
 //invia le informazioni sulle partite al client appena entrato e ogni volta che riceve SIGUSR1
-void invia_partite(const int client_sd);
+void invia_partite();
 //gestisce il segnale SIGUSR2 avvisando tutti i giocatori in lobby dell'entrata di un nuovo giocatore
 void handler_nuovo_giocatore();
 //gestisce il segnale SIGALRM facendo chiudere al thread la sua socket e chiamando pthread_exit()

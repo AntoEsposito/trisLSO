@@ -7,7 +7,7 @@ struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const
     struct nodo_giocatore *nuova_testa = (struct nodo_giocatore *) malloc(sizeof(struct nodo_giocatore));
     if (nuova_testa == NULL)
     {
-        send(client_sd, "errore\n", 7, 0); 
+        send(client_sd, "errore", 6, 0); 
         close(client_sd);
         cancella_nodo_tid(pthread_self());
         cancella_nodo_tid(pthread_self());
@@ -65,7 +65,7 @@ char* verifica_giocatore(const int client_sd)
     char *giocatore = (char *) malloc(MAXPLAYER*sizeof(char));
     if (giocatore == NULL)
     {
-        send(client_sd, "errore\n", 7, 0);
+        send(client_sd, "errore", 6, 0);
         close(client_sd);
         cancella_nodo_tid(pthread_self());
         pthread_exit(NULL);
@@ -75,7 +75,7 @@ char* verifica_giocatore(const int client_sd)
 
     while (true)
     {
-        if (send(client_sd, "Inserisci il tuo nome per registrarti (max 15 caratteri)\n", 57, 0) <= 0) 
+        if (send(client_sd, "Inserisci il tuo nome per registrarti (max 15 caratteri)", 56, 0) <= 0) 
         {
             close(client_sd);
             free(giocatore);
@@ -94,7 +94,7 @@ char* verifica_giocatore(const int client_sd)
         if(!(esiste_giocatore(giocatore))) break;
         memset(giocatore, 0, MAXPLAYER);
 
-        if (send(client_sd, "Il nome selezionato è già utilizzato\n", 39, 0) <= 0)
+        if (send(client_sd, "Il nome selezionato è già utilizzato", 38, 0) <= 0)
         {
             close(client_sd);
             free(giocatore);
@@ -103,7 +103,7 @@ char* verifica_giocatore(const int client_sd)
         }
     }
 
-    if (send(client_sd, "Registrazione completata\n", 25, 0) <= 0)
+    if (send(client_sd, "Registrazione completata", 24, 0) <= 0)
     {
         close(client_sd);
         free(giocatore);
@@ -181,11 +181,11 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
     const int sd_proprietario = partita -> sd_proprietario;
     char buffer[MAXOUT];
     memset(buffer, 0, MAXOUT);
-    strcat(buffer, nome_avversario); strcat(buffer, " vuole unirsi alla tua partita, accetti? [s/n]\n");
+    strcat(buffer, nome_avversario); strcat(buffer, " vuole unirsi alla tua partita, accetti? [s/n]");
 
     char risposta = '\0'; //si occupa il codice client di verificare che l'input sia o "s" o "n"
 
-    if(send(sd_avversario, "In attesa del proprietario...\n", 31, 0) <= 0) error_handler(sd_avversario);
+    if(send(sd_avversario, "In attesa del proprietario...", 29, 0) <= 0) error_handler(sd_avversario);
 
     if(send(sd_proprietario, buffer, strlen(buffer), 0) <= 0) 
     {
@@ -203,13 +203,13 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
     {
         strcpy(partita -> avversario, nome_avversario);
         partita -> sd_avversario = sd_avversario;
-        //questa send "sblocca" il proprietario che era in attesa
-        if (send(sd_proprietario, "Richiesta accettata, inizia la partita\n", 39, 0) <= 0) error_handler(partita -> sd_proprietario);
+        if (send(sd_proprietario, "Richiesta accettata, inizia la partita", 38, 0) <= 0) error_handler(partita -> sd_proprietario);
+        partita -> stato = IN_CORSO;
         return true;
     }
-    return false; //Questo return non può essere raggiunto, inserito per evitare capricci dal compilatore
+    return false;
 }
-void partita(struct nodo_partita *dati_partita)
+void gioca_partita(struct nodo_partita *dati_partita)
 {
     char buffer[MAXPARTITA];
     memset(buffer, 0, MAXPARTITA);
@@ -221,17 +221,11 @@ void partita(struct nodo_partita *dati_partita)
 
     struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
-    if (send(sd_proprietario, "\nPartita creata, in attesa di un avversario...", 46, 0) <= 0) error_handler(sd_proprietario);
+    if (send(sd_proprietario, "Partita creata, in attesa di un avversario...", 45, 0) <= 0) error_handler(sd_proprietario);
     segnala_cambiamento_partite();
 
-    //il proprietario si blocca su questo ciclo finchè la funzione di unione non manda un messaggio di conferma unione (39 byte)
-    while (true)
-    {
-        int n_byte = 0;
-        if ((n_byte = recv(sd_proprietario, buffer, MAXPARTITA, 0)) <= 0) error_handler(sd_proprietario);
-        memset(buffer, 0, MAXPARTITA);
-        if (n_byte == 39) break;
-    }
+    //il proprietario esce da questo ciclo quando la funzione di unione cambia lo stato della partita
+    while (dati_partita -> stato != IN_CORSO) {} //busy wait TODO
 
     const int sd_avversario = dati_partita -> sd_avversario;
     char nome_avversario[MAXPLAYER];
@@ -243,7 +237,6 @@ void partita(struct nodo_partita *dati_partita)
 
     while (true) //si esce da questo ciclo quando la richiesta di rivincita viene rifiutata
     {
-        dati_partita -> stato = IN_CORSO;
         segnala_cambiamento_partite();
 
         char giocata = '\0';
@@ -254,14 +247,14 @@ void partita(struct nodo_partita *dati_partita)
         while (esito == '0') //non è il terminatore \0 ma il carattere 0
         {
             //inizia il proprietario
-            if (send(sd_proprietario, "Tocca a te\n", 11, 0) <= 0) error_handler(sd_proprietario);
+            if (send(sd_proprietario, "Tocca a te", 10, 0) <= 0) error_handler(sd_proprietario);
             if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
             if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
             if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
             if (esito != '0') break;
 
             //turno dell'avversario
-            if (send(sd_avversario, "Tocca a te\n", 11, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_avversario, "Tocca a te", 10, 0) <= 0) error_handler(sd_avversario);
             if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
             if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
             if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
@@ -288,17 +281,56 @@ void partita(struct nodo_partita *dati_partita)
         if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);
         risposta = toupper(risposta);
         
-        if (risposta == 'N') if (send(sd_avversario, "Rivincita rifiutata\n", 20, 0) <= 0) error_handler(sd_avversario);
+        if (risposta == 'N') if (send(sd_avversario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_avversario);
         if (send(sd_avversario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_avversario);
         if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);
         risposta = toupper(risposta);
 
         if(risposta == 'N') //si torna alla lobby
         {
-            if (send(sd_proprietario, "Rivincita rifiutata\n", 20, 0) <= 0) error_handler(sd_proprietario);
+            if (send(sd_proprietario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_proprietario);
             proprietario -> stato = IN_LOBBY;
             avversario -> stato = IN_LOBBY;
             break;
+        }
+    }
+}
+void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocatore)
+{
+    char inbuffer[MAXIN]; //contiene le "scelte" del giocatore
+    char outbuffer[MAXOUT]; //contiene tutte le statistiche del giocatore formattate in un'unica stringa
+    
+    while (true)
+    {
+        memset(inbuffer, 0, MAXIN);
+        memset(outbuffer, 0, MAXOUT);
+        //conversione in stringhe delle statistiche del giocatore
+        char vittorie[3]; sprintf(vittorie, "%u", dati_giocatore -> vittorie);
+        char sconfitte[3]; sprintf(sconfitte, "%u", dati_giocatore -> sconfitte);
+        char pareggi[3]; sprintf(pareggi, "%u", dati_giocatore -> pareggi);
+
+        outbuffer[0] = '\n';
+        strcat(outbuffer, dati_giocatore -> nome);
+        strcat(outbuffer, "\nvittorie: "); strcat(outbuffer, vittorie);
+        strcat(outbuffer, "\nsconfitte: "); strcat(outbuffer, sconfitte);
+        strcat(outbuffer, "\npareggi: "); strcat(outbuffer, pareggi);
+
+        if (send(sd_giocatore, outbuffer, strlen(outbuffer), 0) <= 0) error_handler(sd_giocatore);
+        invia_partite(sd_giocatore);
+        if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0) error_handler(sd_giocatore);
+
+        inbuffer[0] = toupper(inbuffer[0]);
+        if (strcmp(inbuffer, "Esci") == 0) break;
+        else if (strcmp(inbuffer, "Crea") == 0) 
+        {
+            struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
+            gioca_partita(nodo_partita);
+        }
+        else 
+        {
+            if (!unione_partita(trova_partita_da_indice(atoi(inbuffer)), sd_giocatore, dati_giocatore -> nome)) //se il proprietario rifiuta
+                if (send(sd_giocatore, "Richiesta di unione rifiutata", 29, 0) <= 0) error_handler(sd_giocatore);
+            while (dati_giocatore -> stato == IN_PARTITA) {} //busy wait TODO
         }
     }
 }
@@ -380,43 +412,6 @@ void error_handler(const int sd_giocatore)
     if (partita != NULL) cancella_partita(partita);
     if (giocatore != NULL) pthread_kill(tid, SIGALRM);
 }
-void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocatore)
-{
-    char inbuffer[MAXIN]; //contiene le "scelte" del giocatore
-    char outbuffer[MAXOUT]; //contiene tutte le statistiche del giocatore formattate in un'unica stringa
-    
-    while (true)
-    {
-        memset(inbuffer, 0, MAXIN);
-        memset(outbuffer, 0, MAXOUT);
-        //conversione in stringhe delle statistiche del giocatore
-        char vittorie[3]; sprintf(vittorie, "%u", dati_giocatore -> vittorie);
-        char sconfitte[3]; sprintf(sconfitte, "%u", dati_giocatore -> sconfitte);
-        char pareggi[3]; sprintf(pareggi, "%u", dati_giocatore -> pareggi);
-
-        strcat(outbuffer, dati_giocatore -> nome);
-        strcat(outbuffer, "\nvittorie: "); strcat(outbuffer, vittorie);
-        strcat(outbuffer, "\nsconfitte: "); strcat(outbuffer, sconfitte);
-        strcat(outbuffer, "\npareggi: "); strcat(outbuffer, pareggi);
-
-        if (send(sd_giocatore, outbuffer, strlen(outbuffer), 0) <= 0) error_handler(sd_giocatore);
-        invia_partite(sd_giocatore);
-        if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0) error_handler(sd_giocatore);
-
-        inbuffer[0] = toupper(inbuffer[0]);
-        if (strcmp(inbuffer, "Esci") == 0) break;
-        else if (strcmp(inbuffer, "Crea") == 0) 
-        {
-            struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
-            partita(nodo_partita);
-        }
-        else 
-        {
-            if (!unione_partita(trova_partita_da_indice(atoi(inbuffer)), sd_giocatore, dati_giocatore -> nome)) //se il proprietario rifiuta
-            if (send(sd_giocatore, "Richiesta di unione rifiutata\n", 30, 0) <= 0) error_handler(sd_giocatore);
-        }
-    }
-}
 void* thread_giocatore(void *sd)
 {
     const int sd_giocatore = *((int *)sd); //cast del puntatore void a int e deferenziazione
@@ -449,7 +444,7 @@ void handler_nuovo_giocatore()
     if (tmp != NULL) //controllo teoricamente inutile
     {
         strcat(messaggio, tmp -> nome); 
-        strcat(messaggio, " è appena entrato in lobby!\n");
+        strcat(messaggio, " è appena entrato in lobby!");
 
         struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
         const int sd = giocatore -> sd_giocatore;
@@ -458,8 +453,10 @@ void handler_nuovo_giocatore()
         send(sd, messaggio, strlen(messaggio), 0);
     }
 }
-void invia_partite(const int client_sd)
+void invia_partite()
 {
+    struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
+    const int client_sd = giocatore -> sd_giocatore;
     struct nodo_partita *tmp = testa_partite;
 
     char outbuffer[MAXOUT];
@@ -469,43 +466,43 @@ void invia_partite(const int client_sd)
     char stringa_indice[3]; //l'indice verrà convertito in questa stringa
     memset(stringa_indice, 0, 3);
 
-    char stato_partita[32];
+    char stato_partita[28];
 
-    if(tmp == NULL) send(client_sd, "\nNon ci sono partite attive al momento, scrivi \"crea\" per crearne una o \"esci\" per uscire\n", 90, 0);
+    if(tmp == NULL) send(client_sd, "\nNon ci sono partite attive al momento, scrivi \"crea\" per crearne una o \"esci\" per uscire", 89, 0);
     //anche questa funzione non fa error checking in quanto signal handler
     else
     {
         while (tmp != NULL)
         {
-            memset(stato_partita, 0, 27);
+            memset(stato_partita, 0, 28);
             switch (tmp -> stato)
             {
                 case NUOVA_CREAZIONE:
-                    strcpy(stato_partita, "Nuova creazione: in attesa");
+                    strcpy(stato_partita, "Creata da poco\n");
                     break;
                 case IN_ATTESA:
-                    strcpy(stato_partita, "In attesa di un giocatore");
+                    strcpy(stato_partita, "In attesa di un giocatore\n");
                     break;
                 case IN_CORSO:
-                    strcpy(stato_partita, "In corso");
+                    strcpy(stato_partita, "In corso\n");
                     break;
                 case TERMINATA:
-                    strcpy(stato_partita, "Terminata");
+                    strcpy(stato_partita, "Terminata\n");
                     break;
             }
             strcat(outbuffer, "\n\nLISTA PARTITE");
-            strcat(outbuffer, "\nPartita di "); strcat(outbuffer, tmp -> proprietario); strcat(outbuffer, "\n");
-            strcat(outbuffer, "Avversario: "); strcat(outbuffer, tmp -> avversario); strcat(outbuffer, "\n");
-            strcat(outbuffer, "Stato: "); strcat(outbuffer, stato_partita);
+            strcat(outbuffer, "\nPartita di "); strcat(outbuffer, tmp -> proprietario);
+            strcat(outbuffer, "\nAvversario: "); strcat(outbuffer, tmp -> avversario);
+            strcat(outbuffer, "\nStato: "); strcat(outbuffer, stato_partita);
 
             if (tmp -> stato == NUOVA_CREAZIONE || tmp -> stato == IN_ATTESA)
             {
                 indice++;
                 sprintf(stringa_indice, "%u", indice);
-                strcat(outbuffer, " || ID: "); strcat(outbuffer, stringa_indice);
+                strcat(outbuffer, "ID: "); strcat(outbuffer, stringa_indice);
             }
             send(client_sd, outbuffer, strlen(outbuffer), 0);
-            send(client_sd, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una o \"esci\" per uscire\n", 110, 0);
+            send(client_sd, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una o \"esci\" per uscire", 109, 0);
 
             tmp = tmp -> next_node;
         }

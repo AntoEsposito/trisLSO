@@ -6,8 +6,7 @@
 #define MAXPARTITA 64 //dimensione del buffer usato per la gestione di una partita
 #define MAXPLAYER 16 //il nome di un player può essere lungo massimo 15 caratteri
 #define MAXOUT 128 //dimensione del buffer che usa il server per mandare messaggi
-#define MAXIN 32 //dimensione del buffer usato dal server per ricevere messaggi
-#define MAXTHREAD 20 //possono esistere massimo 20 thread in contemporanea
+#define MAXIN 16 //dimensione del buffer usato dal server per ricevere messaggi dal giocatore
 
 enum stato_partita
 {

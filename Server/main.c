@@ -3,10 +3,12 @@
 //inizializzazione delle liste
 struct nodo_partita *testa_partite = NULL;
 struct nodo_giocatore *testa_giocatori = NULL;
-struct nodo_tid *testa_thread = NULL;
+struct nodo_tid *testa_thread = NULL; //non viene considerato il tid del processo principale
 
 int main()
 {
+    //NOTA IMPORTANTE: la printf NON funziona senza la presenza di \n
+    //le sed del send non terminano mai col carattere \n, se ne occupa il codice client
     int sd = inizializza_server();
     int client_sd;
     struct sockaddr_in client_address; //socket address dei client
@@ -18,11 +20,11 @@ int main()
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
     //handler per i segnali che gestiranno i thread
-    struct sigaction *sa = (struct sigaction *) malloc(sizeof(struct sigaction));
+    struct sigaction *sa = (struct sigaction *) malloc(sizeof(struct sigaction)); //visual studio da errore ma compila
     memset(sa, 0, sizeof(struct sigaction));
-    sa -> sa_handler = invia_partite;
     sa -> sa_flags = SA_RESTART; //in modo che i segnali non vengano bloccati da eventuali read
-    
+
+    sa -> sa_handler = invia_partite;   
     sigaction(SIGUSR1, sa, NULL);
     sa -> sa_handler = handler_nuovo_giocatore;
     sigaction(SIGUSR2, sa, NULL);
@@ -36,13 +38,13 @@ int main()
     {
         if ((client_sd = accept(sd, (struct sockaddr *) &client_address, &lenght)) < 0)
         {
-            perror("accept error");
+            perror("accept error\n");
             continue;
         }
         struct nodo_tid *nodo = crea_nodo_tid();
         if (pthread_create(&(nodo->tid), &attr, thread_giocatore, &client_sd) != 0)
         {
-            perror("thread creation error");
+            perror("thread creation error\n");
             cancella_nodo_tid(nodo -> tid);
             continue;
         }
