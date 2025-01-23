@@ -439,7 +439,7 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
         perror("socket creation error"), exit(EXIT_FAILURE);
 
     //imposta la socket attivando SO_REUSEADDR che permette di riavviare velocemente il server in caso di crash o riavvii
-    if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) == 0) 
+    if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR , &opt, sizeof(opt)) == 0) 
     {
         perror("Errore setsockopt");
         close(sd);
