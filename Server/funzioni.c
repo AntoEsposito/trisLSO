@@ -9,7 +9,6 @@ struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const
     {
         send(client_sd, "errore", 6, 0); 
         close(client_sd);
-        cancella_nodo_tid(pthread_self());
         pthread_exit(NULL);
     }
 
@@ -66,7 +65,6 @@ char* verifica_giocatore(const int client_sd)
     {
         send(client_sd, "errore", 6, 0);
         close(client_sd);
-        cancella_nodo_tid(pthread_self());
         pthread_exit(NULL);
     }
 
@@ -74,7 +72,6 @@ char* verifica_giocatore(const int client_sd)
     {
         close(client_sd);
         free(giocatore);
-        cancella_nodo_tid(pthread_self());
         pthread_exit(NULL);
     }
 
@@ -88,7 +85,6 @@ char* verifica_giocatore(const int client_sd)
         {
             close(client_sd);
             free(giocatore);
-            cancella_nodo_tid(pthread_self());
             pthread_exit(NULL);
         }
 
@@ -98,7 +94,6 @@ char* verifica_giocatore(const int client_sd)
         {
             close(client_sd);
             free(giocatore);
-            cancella_nodo_tid(pthread_self());
             pthread_exit(NULL);
         }
     }
@@ -107,7 +102,6 @@ char* verifica_giocatore(const int client_sd)
     {
         close(client_sd);
         free(giocatore);
-        cancella_nodo_tid(pthread_self());
         pthread_exit(NULL);
     }
 
@@ -475,7 +469,6 @@ void* thread_giocatore(void *sd)
 
     close(sd_giocatore);    
     cancella_giocatore(giocatore);
-    cancella_nodo_tid(pthread_self());
     pthread_exit(NULL);
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di signal handling
@@ -485,7 +478,6 @@ void sigalrm_handler()
     struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
     close(giocatore -> sd_giocatore);
     cancella_giocatore(giocatore);
-    cancella_nodo_tid(pthread_self());
     pthread_exit(NULL);
 }
 void handler_nuovo_giocatore()
@@ -502,8 +494,7 @@ void handler_nuovo_giocatore()
         struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
         const int sd = giocatore -> sd_giocatore;
 
-        //l'handler ignora gli errori per essere il più veloce possibile
-        send(sd, messaggio, strlen(messaggio), 0);
+        if (send(sd, messaggio, strlen(messaggio), 0) <= 0) error_handler(sd);
     }
 }
 void invia_partite()
@@ -521,8 +512,7 @@ void invia_partite()
 
     char stato_partita[28];
 
-    if(tmp == NULL) send(client_sd, "\nNon ci sono partite attive al momento, scrivi \"crea\" per crearne una o \"esci\" per uscire", 89, 0);
-    //anche questa funzione non fa error checking in quanto signal handler
+    if (tmp == NULL) {if (send(client_sd, "\nNon ci sono partite attive al momento, scrivi \"crea\" per crearne una o \"esci\" per uscire", 89, 0) <= 0) error_handler(client_sd);}
     else
     {
         while (tmp != NULL)
@@ -554,41 +544,10 @@ void invia_partite()
                 sprintf(stringa_indice, "%u", indice);
                 strcat(outbuffer, "ID: "); strcat(outbuffer, stringa_indice);
             }
-            send(client_sd, outbuffer, strlen(outbuffer), 0);
+            if (send(client_sd, outbuffer, strlen(outbuffer), 0) <= 0) error_handler(client_sd);
 
             tmp = tmp -> next_node;
         }
-        send(client_sd, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una o \"esci\" per uscire", 109, 0);
-    }
-}
-//~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni per la creazione e distruzione dei thread
-
-struct nodo_tid* crea_nodo_tid()
-{
-    struct nodo_tid *nuova_testa = (struct nodo_tid *) malloc(sizeof(struct nodo_tid));
-    if (nuova_testa == NULL) return NULL;
-
-    nuova_testa -> next_node = testa_thread;
-    testa_thread = nuova_testa;
-    return testa_thread;
-}
-void cancella_nodo_tid(const pthread_t tid)
-{
-    if (testa_thread != NULL && testa_thread -> tid == tid) //significa che si sta cercando di cancellare la testa
-    {
-        struct nodo_tid *canc = testa_thread;
-        testa_thread = testa_thread -> next_node;
-        free(canc);
-    }
-    else if (testa_thread != NULL)
-    {
-        struct nodo_tid *tmp = testa_thread;
-        while(tmp -> next_node -> tid != tid && tmp != NULL) //in teoria è impossibile che tmp diventi null
-        {
-            tmp = tmp -> next_node;
-        }
-        struct nodo_tid *canc = tmp -> next_node;
-        tmp -> next_node = canc-> next_node;
-        free(canc);
+        if (send(client_sd, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una o \"esci\" per uscire", 109, 0) <= 0) error_handler(client_sd);
     }
 }

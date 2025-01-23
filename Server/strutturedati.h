@@ -50,6 +50,5 @@ struct nodo_tid
 //liste che saranno gestite dai thread (inizializzate in main.c)
 extern struct nodo_partita *testa_partite;
 extern struct nodo_giocatore *testa_giocatori;
-extern struct nodo_tid *testa_thread;
 
 #endif

@@ -3,12 +3,11 @@
 //inizializzazione delle liste
 struct nodo_partita *testa_partite = NULL;
 struct nodo_giocatore *testa_giocatori = NULL;
-struct nodo_tid *testa_thread = NULL; //non viene considerato il tid del processo principale
 
 int main()
 {
     //NOTA IMPORTANTE: la printf NON funziona senza la presenza di \n
-    //le sed del send non terminano mai col carattere \n, se ne occupa il codice client
+    //le send del server non terminano mai col carattere \n, se ne occupa il codice client
     int sd = inizializza_server();
     int client_sd;
     struct sockaddr_in client_address; //socket address dei client
@@ -32,9 +31,6 @@ int main()
     sigaction(SIGALRM, sa, NULL);
 
     free(sa);
-
-    struct nodo_tid *nodo;
-
     //il server può terminare solo inviandogli esplicitamente un segnale che lo termina
     while (true)
     {
@@ -43,11 +39,10 @@ int main()
             perror("accept error\n");
             continue;
         }
-        nodo = crea_nodo_tid();
-        if (pthread_create(&(nodo->tid), &attr, thread_giocatore, &client_sd) != 0)
+        pthread_t tid;
+        if (pthread_create(&tid, &attr, thread_giocatore, &client_sd) != 0)
         {
             perror("thread creation error\n");
-            cancella_nodo_tid(nodo -> tid);
             continue;
         }
     }

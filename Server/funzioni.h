@@ -63,10 +63,6 @@ void invia_partite();
 void handler_nuovo_giocatore();
 //gestisce il segnale SIGALRM facendo chiudere al thread la sua socket e chiamando pthread_exit()
 void sigalrm_handler();
-//funzioni per la creazione e distruzione dei thread
-//crea il nodo per contenere il tid del thread e lo mette in testa alla lista
-struct nodo_tid* crea_nodo_tid();
-//elimina un nodo tid dalla lista
-void cancella_nodo_tid(const pthread_t tid);
+
 
 #endif
