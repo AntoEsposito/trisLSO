@@ -20,6 +20,8 @@
 struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd);
 //verifica se esiste un nodo con lo stesso nome dato in input
 bool esiste_giocatore(const char *nome_giocatore);
+//restituisce il nodo del giocatore dal sd dato in input
+struct nodo_giocatore* trova_giocatore_da_sd(const int sd);
 //restituisce il nodo del giocatore gestito dal tid dato in input
 struct nodo_giocatore* trova_giocatore_da_tid(const pthread_t tid);
 //restituisce il nome del giocatore se la registrazione va a buon fine
@@ -38,7 +40,7 @@ struct nodo_partita* trova_partita_da_sd(const int sd);
 //restituisce la partita in attesa con l'id in input
 struct nodo_partita* trova_partita_da_indice(const unsigned int indice);
 //se il proprietario accetta la richiesta di unione alla partita inserisce i dati dell'avversario nel nodo partita e restituisce vero, falso altrimenti
-bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
+bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
 //funzione che gestisce la partita tra 2 giocatori
 void gioca_partita(struct nodo_partita *dati_partita);
 //elimina un nodo partita dalla lista

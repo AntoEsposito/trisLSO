@@ -33,6 +33,8 @@ int main()
 
     free(sa);
 
+    struct nodo_tid *nodo;
+
     //il server può terminare solo inviandogli esplicitamente un segnale che lo termina
     while (true)
     {
@@ -41,7 +43,7 @@ int main()
             perror("accept error\n");
             continue;
         }
-        struct nodo_tid *nodo = crea_nodo_tid();
+        nodo = crea_nodo_tid();
         if (pthread_create(&(nodo->tid), &attr, thread_giocatore, &client_sd) != 0)
         {
             perror("thread creation error\n");

@@ -10,7 +10,6 @@ struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const
         send(client_sd, "errore", 6, 0); 
         close(client_sd);
         cancella_nodo_tid(pthread_self());
-        cancella_nodo_tid(pthread_self());
         pthread_exit(NULL);
     }
 
@@ -25,7 +24,7 @@ struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const
     nuova_testa -> next_node = testa_giocatori;
 
     testa_giocatori = nuova_testa;
-    return testa_giocatori;
+    return nuova_testa;
 }
 bool esiste_giocatore(const char *nome_giocatore)
 {
@@ -71,17 +70,21 @@ char* verifica_giocatore(const int client_sd)
         pthread_exit(NULL);
     }
 
-    memset(giocatore, 0, MAXPLAYER);
-
-    while (true)
-    {
-        if (send(client_sd, "Inserisci il tuo nome per registrarti (max 15 caratteri)", 56, 0) <= 0) 
+    if (send(client_sd, "Inserisci il tuo nome per registrarti (max 15 caratteri)", 56, 0) <= 0) 
         {
             close(client_sd);
             free(giocatore);
             cancella_nodo_tid(pthread_self());
             pthread_exit(NULL);
         }
+
+        bool nome_trovato = false;
+
+    while (!nome_trovato)
+    {
+        memset(giocatore, 0, MAXPLAYER);
+        
+        
         //si occupa il codice del client di verificare che i caratteri inviati siano al massimo 15
         if (recv(client_sd, giocatore, MAXPLAYER, 0) <= 0 )
         {
@@ -91,10 +94,9 @@ char* verifica_giocatore(const int client_sd)
             pthread_exit(NULL);
         }
 
-        if(!(esiste_giocatore(giocatore))) break;
-        memset(giocatore, 0, MAXPLAYER);
+        if(!(esiste_giocatore(giocatore))) nome_trovato = true;
 
-        if (send(client_sd, "Il nome selezionato è già utilizzato", 38, 0) <= 0)
+        if (send(client_sd, "Il nome inserito è già utilizzato, prova un altro nome (max 15 caratteri)", 75, 0) <= 0)
         {
             close(client_sd);
             free(giocatore);
@@ -153,7 +155,7 @@ struct nodo_partita* crea_partita_in_testa(const char *nome_proprietario, const 
     if(testa_partite != NULL && testa_partite -> stato == NUOVA_CREAZIONE) testa_partite -> stato = IN_ATTESA;
 
     testa_partite = nuova_testa;
-    return testa_partite;
+    return nuova_testa;
 }
 struct nodo_partita* trova_partita_da_sd(const int sd)
 {
@@ -176,7 +178,7 @@ struct nodo_partita* trova_partita_da_indice(const unsigned int indice)
     }
     return NULL;
 }
-bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario)
+bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario)
 {
     const int sd_proprietario = partita -> sd_proprietario;
     char buffer[MAXOUT];
@@ -192,7 +194,7 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
         error_handler(partita -> sd_proprietario);
         return false;
     }
-    if(recv(sd_proprietario, &risposta, 1, 0) <= 0)
+    if(recv(sd_proprietario, &risposta, 1, 0) <= 0)     //si potrebbe aggiungere un timer per mancata risposta
     {
         error_handler(partita -> sd_proprietario);
         return false;
@@ -204,7 +206,6 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
         strcpy(partita -> avversario, nome_avversario);
         partita -> sd_avversario = sd_avversario;
         if (send(sd_proprietario, "Richiesta accettata, inizia la partita", 38, 0) <= 0) error_handler(partita -> sd_proprietario);
-        partita -> stato = IN_CORSO; //sblocca la funziona gioca_partita in busy wait
         return true;
     }
     return false;
@@ -222,10 +223,8 @@ void gioca_partita(struct nodo_partita *dati_partita)
     struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
     if (send(sd_proprietario, "Partita creata, in attesa di un avversario...", 45, 0) <= 0) error_handler(sd_proprietario);
-    segnala_cambiamento_partite();
 
-    //il proprietario esce da questo ciclo quando la funzione di unione cambia lo stato della partita
-    while (dati_partita -> stato != IN_CORSO) {} //busy wait DA TESTARE
+    //TODO addormentare il thread, verrà svegliato da funzione_lobby()
 
     const int sd_avversario = dati_partita -> sd_avversario;
     char nome_avversario[MAXPLAYER];
@@ -234,31 +233,63 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
     avversario -> stato = IN_PARTITA;
+    dati_partita -> stato = IN_CORSO; 
+    segnala_cambiamento_partite();
 
-    while (true) //si esce da questo ciclo quando la richiesta di rivincita viene rifiutata
+    bool rivincita_accettata;
+    int round = 0;
+
+    do
     {
-        segnala_cambiamento_partite();
+        dati_partita -> stato = IN_CORSO;
+        round++;
 
         char giocata = '\0';
         char esito = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
         //'0' = ancora in corso '1' = vince proprietario, '2' = vince avversario, '3' = pareggio
+        //si potrebbero usare costanti locali per migliore leggibilità
 
         //inizia la partita
-        while (esito == '0') //non è il terminatore \0 ma il carattere 0
+        do
         {
-            //inizia il proprietario
-            if (send(sd_proprietario, "Tocca a te", 10, 0) <= 0) error_handler(sd_proprietario);
-            if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
-            if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
-            if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
-            if (esito != '0') break;
+            if (round%2 != 0)
+            {
+                //inizia il proprietario
+                if (send(sd_proprietario, "Tocca a te", 10, 0) <= 0) error_handler(sd_proprietario);
+                if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+                if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
+                if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
+                if (esito != '0') break;
 
-            //turno dell'avversario
-            if (send(sd_avversario, "Tocca a te", 10, 0) <= 0) error_handler(sd_avversario);
-            if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
-            if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
-            if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+                //turno dell'avversario
+                if (send(sd_avversario, "Tocca a te", 10, 0) <= 0) error_handler(sd_avversario);
+                if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
+                if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
+                if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+            }
+            else 
+            {
+                //inizia l'avversario
+                if (send(sd_avversario, "Tocca a te", 10, 0) <= 0) error_handler(sd_avversario);
+                if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
+                if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
+                if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+                if (esito != '0') break;
+
+                //turno del proprietario
+                if (send(sd_proprietario, "Tocca a te", 10, 0) <= 0) error_handler(sd_proprietario);
+                if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
+                if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
+                if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
+            }
+        } while (esito == '0');
+
+        //scambio dell'esito di vittoria nei round pari
+        if (round%2 == 0){
+            if (esito == 1) esito = 2;
+            else if (esito == 2) esito = 1;
         }
+
         //si aggiornano i contatori dei giocatori
         switch (esito)
         {
@@ -272,35 +303,46 @@ void gioca_partita(struct nodo_partita *dati_partita)
                 proprietario -> pareggi++;
                 avversario -> pareggi++;
         }
-        dati_partita -> stato = TERMINATA;
-        segnala_cambiamento_partite();
+        dati_partita -> stato = TERMINATA; //non credo importi segnalare a tutti i giocatori in lobby ogni rivincita
 
         //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
         char risposta = '\0';
-        if (send(sd_proprietario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_proprietario);
-        if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);
+
+        if (send(sd_avversario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_avversario);
+        if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);            //si potrebbe aggiungere un timer per mancata risposta
         risposta = toupper(risposta);
         
-        if (risposta == 'N') if (send(sd_avversario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_avversario);
-        if (send(sd_avversario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_avversario);
-        if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);
-        risposta = toupper(risposta);
+        if (risposta != 'S') {if (send(sd_proprietario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_proprietario);}
+        else {
+            if (send(sd_avversario, "In attesa di risposta dall'avversario", 37, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_proprietario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_proprietario);  //problema: il proprietario rimane in attesa della risposta dell'avversario senza saperlo
+            if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);    //si potrebbe aggiungere un timer per mancata risposta
+            risposta = toupper(risposta);
+        }
 
-        if(risposta == 'N') //si torna alla lobby
+        if(risposta != 'S') //si torna alla lobby
         {
-            if (send(sd_proprietario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_proprietario);
+            if (send(sd_avversario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_avversario);
             proprietario -> stato = IN_LOBBY;
             avversario -> stato = IN_LOBBY;
-            break;
+            //TODO svegliare thread avversario
+            rivincita_accettata = false;
         }
-    }
+        else
+        {
+            if (send(sd_avversario, "Rivincita accettata, pronti per il prossimo round", 49, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_proprietario, "Rivincita accettata, pronti per il prossimo round", 49, 0) <= 0) error_handler(sd_proprietario);
+        }
+    } while (rivincita_accettata);
 }
 void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocatore)
 {
     char inbuffer[MAXIN]; //contiene le "scelte" del giocatore
     char outbuffer[MAXOUT]; //contiene tutte le statistiche del giocatore formattate in un'unica stringa
+
+    bool connesso = true;
     
-    while (true)
+    do
     {
         memset(inbuffer, 0, MAXIN);
         memset(outbuffer, 0, MAXOUT);
@@ -316,11 +358,11 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
         strcat(outbuffer, "\npareggi: "); strcat(outbuffer, pareggi);
 
         if (send(sd_giocatore, outbuffer, strlen(outbuffer), 0) <= 0) error_handler(sd_giocatore);
-        invia_partite(sd_giocatore);
+        invia_partite();
         if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0) error_handler(sd_giocatore);
 
         inbuffer[0] = toupper(inbuffer[0]);
-        if (strcmp(inbuffer, "Esci") == 0) break;
+        if (strcmp(inbuffer, "Esci") == 0) connesso = false;
         else if (strcmp(inbuffer, "Crea") == 0) 
         {
             struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
@@ -336,13 +378,14 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
             }
             else
             {
-                if (!unione_partita(partita, sd_giocatore, dati_giocatore -> nome)) //se il proprietario rifiuta
-                    if (send(sd_giocatore, "Richiesta di unione rifiutata", 29, 0) <= 0) error_handler(sd_giocatore);
-
-                while (dati_giocatore -> stato == IN_PARTITA) {} //NON FUNZIONA, bisogna trovare un modo per bloccare il thread fino alla fine della partita
+                if (!accetta_partita(partita, sd_giocatore, dati_giocatore -> nome))
+                    {if (send(sd_giocatore, "Richiesta di unione rifiutata", 29, 0) <= 0) error_handler(sd_giocatore);}
+                else 
+                    ;//TODO svegliare il thread proprietario
+                    ;//TODO addormentare questo thread, verrà svegliato da gioca_partita()
             }
         }
-    }
+    } while (connesso);
 }
 void cancella_partita(struct nodo_partita *nodo)
 {
@@ -512,10 +555,10 @@ void invia_partite()
                 strcat(outbuffer, "ID: "); strcat(outbuffer, stringa_indice);
             }
             send(client_sd, outbuffer, strlen(outbuffer), 0);
-            send(client_sd, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una o \"esci\" per uscire", 109, 0);
 
             tmp = tmp -> next_node;
         }
+        send(client_sd, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una o \"esci\" per uscire", 109, 0);
     }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni per la creazione e distruzione dei thread
