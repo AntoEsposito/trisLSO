@@ -204,7 +204,7 @@ bool unione_partita(struct nodo_partita *partita, const int sd_avversario, const
         strcpy(partita -> avversario, nome_avversario);
         partita -> sd_avversario = sd_avversario;
         if (send(sd_proprietario, "Richiesta accettata, inizia la partita", 38, 0) <= 0) error_handler(partita -> sd_proprietario);
-        partita -> stato = IN_CORSO;
+        partita -> stato = IN_CORSO; //sblocca la funziona gioca_partita in busy wait
         return true;
     }
     return false;
@@ -225,7 +225,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
     segnala_cambiamento_partite();
 
     //il proprietario esce da questo ciclo quando la funzione di unione cambia lo stato della partita
-    while (dati_partita -> stato != IN_CORSO) {} //busy wait TODO
+    while (dati_partita -> stato != IN_CORSO) {} //busy wait DA TESTARE
 
     const int sd_avversario = dati_partita -> sd_avversario;
     char nome_avversario[MAXPLAYER];
@@ -325,12 +325,22 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
         {
             struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
             gioca_partita(nodo_partita);
+            cancella_partita(nodo_partita);
         }
         else 
         {
-            if (!unione_partita(trova_partita_da_indice(atoi(inbuffer)), sd_giocatore, dati_giocatore -> nome)) //se il proprietario rifiuta
-                if (send(sd_giocatore, "Richiesta di unione rifiutata", 29, 0) <= 0) error_handler(sd_giocatore);
-            while (dati_giocatore -> stato == IN_PARTITA) {} //busy wait TODO
+            struct nodo_partita *partita = trova_partita_da_indice(atoi(inbuffer));
+            if (partita == NULL)
+            {
+                if (send(sd_giocatore, "Partita non trovata", 19, 0) <= 0) error_handler(sd_giocatore);
+            }
+            else
+            {
+                if (!unione_partita(partita, sd_giocatore, dati_giocatore -> nome)) //se il proprietario rifiuta
+                    if (send(sd_giocatore, "Richiesta di unione rifiutata", 29, 0) <= 0) error_handler(sd_giocatore);
+
+                while (dati_giocatore -> stato == IN_PARTITA) {} //NON FUNZIONA, bisogna trovare un modo per bloccare il thread fino alla fine della partita
+            }
         }
     }
 }
