@@ -27,7 +27,7 @@ int main()
     timer.tv_sec = 120; //secondi, lo abbasseremo dopo il testing
     timer.tv_usec = 0; //millisecondi
 
-    //handler per i segnali che gestiranno i thread, impostati col flag SA_RESTART per evitare che le read li blocchini
+    //handler per i segnali che gestiranno i thread, impostati col flag SA_RESTART per evitare che le read li blocchino
     struct sigaction *sa = (struct sigaction *) malloc(sizeof(struct sigaction));
     memset(sa, 0, sizeof(struct sigaction));
     sa -> sa_flags = SA_RESTART;
