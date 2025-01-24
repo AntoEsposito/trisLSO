@@ -4,6 +4,11 @@
 struct nodo_partita *testa_partite = NULL;
 struct nodo_giocatore *testa_giocatori = NULL;
 
+//inizializzazione dei mutex
+pthread_mutex_t mutex_partite = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t mutex_giocatori = PTHREAD_MUTEX_INITIALIZER;
+
+
 int main()
 {
     //NOTA IMPORTANTE: la printf NON funziona senza la presenza di \n
@@ -13,20 +18,19 @@ int main()
     struct sockaddr_in client_address;
     socklen_t lenght = sizeof(struct sockaddr_in);
 
-    //rappresenta il tempo massimo dopo il quale le socket vengono considerate inattive e quindi automaticamente chiuse
-    struct timeval timer;
-    timer.tv_sec = 120; //secondi, lo abbasseremo dopo il testing
-    timer.tv_usec = 0; //millisecondi
-
     //i thread sono creati in stato detatched
-    pthread_attr_t attr;
+    pthread_attr_t attr;    
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
 
-    //handler per i segnali che gestiranno i thread, impostati col flag SA_RESTART
-    struct sigaction *sa = (struct sigaction *) malloc(sizeof(struct sigaction)); //visual studio da errore ma compila
+    struct timeval timer; //rappresenta il tempo massimo dopo il quale le socket vengono considerate inattive e quindi automaticamente chiuse
+    timer.tv_sec = 120; //secondi, lo abbasseremo dopo il testing
+    timer.tv_usec = 0; //millisecondi
+
+    //handler per i segnali che gestiranno i thread, impostati col flag SA_RESTART per evitare che le read li blocchini
+    struct sigaction *sa = (struct sigaction *) malloc(sizeof(struct sigaction));
     memset(sa, 0, sizeof(struct sigaction));
-    sa -> sa_flags = SA_RESTART; //in modo che i segnali non vengano bloccati da eventuali read
+    sa -> sa_flags = SA_RESTART;
 
     sa -> sa_handler = invia_partite;   
     sigaction(SIGUSR1, sa, NULL);

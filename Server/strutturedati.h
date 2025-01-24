@@ -41,14 +41,13 @@ struct nodo_partita
     enum stato_partita stato;
     struct nodo_partita *next_node;
 };
-struct nodo_tid
-{
-    pthread_t tid;
-    struct nodo_tid *next_node;
-};
 
-//liste che saranno gestite dai thread (inizializzate in main.c)
+//liste che saranno gestite dai thread
 extern struct nodo_partita *testa_partite;
 extern struct nodo_giocatore *testa_giocatori;
+
+//mutex per l'accesso alle liste
+extern pthread_mutex_t mutex_partite;
+extern pthread_mutex_t mutex_giocatori;
 
 #endif

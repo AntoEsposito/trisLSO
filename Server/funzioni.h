@@ -53,7 +53,7 @@ int inizializza_server();
 //gestisce gli errori di rete eliminando il nodo del giocatore che ha causato l'errore, l'eventuale nodo partita e manda SIGALRM al relativo thread
 void error_handler(const int sd_giocatore);
 //funzione che gestisce il ciclo di vita di un giocatore
-void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocatore);
+void funzione_lobby(struct nodo_giocatore *dati_giocatore);
 //start function del thread che gestisce un client
 void* thread_giocatore(void *sd_giocatore);
 //funzioni di signal handling

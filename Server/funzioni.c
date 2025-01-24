@@ -20,20 +20,28 @@ struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const
     nuova_testa -> stato = IN_LOBBY;
     nuova_testa -> tid_giocatore = pthread_self();
     nuova_testa -> sd_giocatore = client_sd;
+    pthread_mutex_lock(&mutex_giocatori);
     nuova_testa -> next_node = testa_giocatori;
 
     testa_giocatori = nuova_testa;
+    pthread_mutex_unlock(&mutex_giocatori);
     return nuova_testa;
 }
 bool esiste_giocatore(const char *nome_giocatore)
 {
+    pthread_mutex_lock(&mutex_giocatori);
     struct nodo_giocatore *tmp = testa_giocatori;
 
     while (tmp != NULL)
     {
-        if (strcmp(tmp -> nome, nome_giocatore) == 0) return true;
+        if (strcmp(tmp -> nome, nome_giocatore) == 0) 
+        {
+            pthread_mutex_unlock(&mutex_giocatori);
+            return true;
+        }
         tmp = tmp -> next_node;
-    } 
+    }
+    pthread_mutex_unlock(&mutex_giocatori); 
     return false;
 }
 struct nodo_giocatore* trova_giocatore_da_sd(const int sd)
@@ -116,10 +124,12 @@ struct nodo_giocatore* registra_giocatore(const int client_sd)
 }
 void cancella_giocatore(struct nodo_giocatore *nodo)
 {
+    pthread_mutex_lock(&mutex_giocatori);
     if (nodo != NULL && testa_giocatori == nodo) //significa che si sta cercando di cancellare la testa
     {
         testa_giocatori = testa_giocatori -> next_node;
         free(nodo);
+        pthread_mutex_unlock(&mutex_giocatori);
     }
     else if (nodo != NULL)
     {
@@ -130,6 +140,7 @@ void cancella_giocatore(struct nodo_giocatore *nodo)
         }
         tmp -> next_node = nodo -> next_node;
         free(nodo);
+        pthread_mutex_unlock(&mutex_giocatori);
     }
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di gestione partite
@@ -143,10 +154,12 @@ struct nodo_partita* crea_partita_in_testa(const char *nome_proprietario, const 
     strcpy(nuova_testa -> proprietario, nome_proprietario);
     nuova_testa -> sd_proprietario = sd_proprietario;
     nuova_testa -> stato = NUOVA_CREAZIONE;
+    pthread_mutex_lock(&mutex_partite);
     nuova_testa -> next_node = testa_partite;
     if(testa_partite != NULL && testa_partite -> stato == NUOVA_CREAZIONE) testa_partite -> stato = IN_ATTESA;
 
     testa_partite = nuova_testa;
+    pthread_mutex_unlock(&mutex_partite);
     return nuova_testa;
 }
 struct nodo_partita* trova_partita_da_sd(const int sd)
@@ -162,12 +175,18 @@ struct nodo_partita* trova_partita_da_sd(const int sd)
 struct nodo_partita* trova_partita_da_indice(const unsigned int indice)
 {
     unsigned int indice_partita = 0;
+    pthread_mutex_lock(&mutex_partite);
     struct nodo_partita *tmp = testa_partite;
     while (tmp != NULL)
     {
         if (tmp -> stato == IN_ATTESA || tmp -> stato == NUOVA_CREAZIONE) indice_partita++;
-        if (indice_partita == indice) return tmp;
+        if (indice_partita == indice) 
+        {
+            pthread_mutex_unlock(&mutex_partite);
+            return tmp;
+        }
     }
+    pthread_mutex_unlock(&mutex_partite);
     return NULL;
 }
 bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario)
@@ -186,7 +205,7 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
         error_handler(partita -> sd_proprietario);
         return false;
     }
-    if(recv(sd_proprietario, &risposta, 1, 0) <= 0)     //si potrebbe aggiungere un timer per mancata risposta
+    if(recv(sd_proprietario, &risposta, 1, 0) <= 0)
     {
         error_handler(partita -> sd_proprietario);
         return false;
@@ -331,11 +350,12 @@ void gioca_partita(struct nodo_partita *dati_partita)
         }
     } while (rivincita_accettata);
 }
-void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocatore)
+void funzione_lobby(struct nodo_giocatore *dati_giocatore)
 {
     char inbuffer[MAXIN]; //contiene le "scelte" del giocatore
     char outbuffer[MAXOUT]; //contiene tutte le statistiche del giocatore formattate in un'unica stringa
 
+    const int sd_giocatore = dati_giocatore -> sd_giocatore;
     bool connesso = true;   
     do
     {
@@ -361,8 +381,12 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
         else if (strcmp(inbuffer, "Crea") == 0) 
         {
             struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
-            gioca_partita(nodo_partita);
-            cancella_partita(nodo_partita);
+            if (nodo_partita != NULL)
+            {
+                gioca_partita(nodo_partita);
+                cancella_partita(nodo_partita);
+            }
+            else if (send(sd_giocatore, "Impossibile creare partita, attendi qualche minuto", 50, 0) <= 0) error_handler(sd_giocatore);
         }
         else 
         {
@@ -384,10 +408,12 @@ void funzione_lobby(const int sd_giocatore, struct nodo_giocatore *dati_giocator
 }
 void cancella_partita(struct nodo_partita *nodo)
 {
+    pthread_mutex_lock(&mutex_partite);
     if (nodo != NULL && testa_partite == nodo) //significa che si sta cercando di cancellare la testa
     {
         testa_partite = testa_partite -> next_node;
         free(nodo);
+        pthread_mutex_unlock(&mutex_partite);
     }
     else if (nodo != NULL)
     {
@@ -398,13 +424,17 @@ void cancella_partita(struct nodo_partita *nodo)
         }
         tmp -> next_node = nodo -> next_node;
         free(nodo);
+        pthread_mutex_unlock(&mutex_partite);
     }
 }
 void segnala_cambiamento_partite()
 { 
     const pthread_t tid_mittente = pthread_self();
     pthread_t tid_ricevente = 0;
+    //per essere sicuri che la testa non cambi nel frattempo
+    pthread_mutex_lock(&mutex_giocatori);
     struct nodo_giocatore *tmp = testa_giocatori;
+    pthread_mutex_unlock(&mutex_giocatori);
 
     while (tmp != NULL)
     {
@@ -414,10 +444,14 @@ void segnala_cambiamento_partite()
     }
 }
 void segnala_nuovo_giocatore()
-{ 
+{
+    //per essere sicuri che la testa non cambi nel frattempo
+    pthread_mutex_lock(&mutex_giocatori);
+    struct nodo_giocatore *tmp = testa_giocatori;
+    pthread_mutex_unlock(&mutex_giocatori);
+
     const pthread_t tid_mittente = pthread_self();
     pthread_t tid_ricevente = 0;
-    struct nodo_giocatore *tmp = testa_giocatori;
 
     while (tmp != NULL)
     {
@@ -461,7 +495,6 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
 }
 void error_handler(const int sd_giocatore)
 {
-
     struct nodo_giocatore *giocatore = trova_giocatore_da_sd(sd_giocatore);
     const pthread_t tid = giocatore -> tid_giocatore;
     struct nodo_partita *partita = trova_partita_da_sd(sd_giocatore);
@@ -475,7 +508,7 @@ void* thread_giocatore(void *sd)
     struct nodo_giocatore *giocatore = registra_giocatore(sd_giocatore);
     segnala_nuovo_giocatore();
 
-    funzione_lobby(sd_giocatore, giocatore);
+    funzione_lobby(giocatore);
 
     close(sd_giocatore);    
     cancella_giocatore(giocatore);
@@ -492,7 +525,9 @@ void sigalrm_handler()
 }
 void handler_nuovo_giocatore()
 {
+    pthread_mutex_lock(&mutex_giocatori);
     struct nodo_giocatore *tmp = testa_giocatori;
+    pthread_mutex_unlock(&mutex_giocatori);
 
     char messaggio[MAXOUT];
     memset(messaggio, 0, MAXOUT);
@@ -502,15 +537,15 @@ void handler_nuovo_giocatore()
         strcat(messaggio, " è appena entrato in lobby!");
 
         struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
-        const int sd = giocatore -> sd_giocatore;
 
-        if (send(sd, messaggio, strlen(messaggio), 0) <= 0) error_handler(sd);
+        if (send(giocatore -> sd_giocatore, messaggio, strlen(messaggio), 0) <= 0) error_handler(giocatore -> sd_giocatore);
     }
 }
 void invia_partite()
 {
     struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
     const int client_sd = giocatore -> sd_giocatore;
+    pthread_mutex_lock(&mutex_partite);
     struct nodo_partita *tmp = testa_partite;
 
     char outbuffer[MAXOUT];
@@ -560,4 +595,5 @@ void invia_partite()
         }
         if (send(client_sd, "\nUnisciti a una partita in attesa scrivendo il relativo ID, scrivi \"crea\" per crearne una o \"esci\" per uscire", 109, 0) <= 0) error_handler(client_sd);
     }
+    pthread_mutex_unlock(&mutex_partite);
 }
