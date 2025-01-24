@@ -25,17 +25,18 @@ void* fun_scrittore(void *arg)
     do
     {
         memset(buffer, 0, MAXSCRITTORE);
-        if (fgets(buffer, MAXSCRITTORE, stdin) != NULL)
+        //strnlen è più sicura di strlen per stringhe che potrebbero non terminare con \0 come in questo caso
+        if (fgets(buffer, MAXSCRITTORE, stdin) != NULL && buffer[strnlen(buffer, MAXSCRITTORE)-1] == '\n') //massimo 15 caratteri nel buffer escluso \n
         {
-            //strnlen restituisce il secondo input se NON trova il terminatore nella stringa, quindi se sono stati scritti più di 15 caratteri
-            if (buffer[strnlen(buffer, MAXSCRITTORE)-1] != '\n') //significa che sono stati inseriti più di 15 caratteri
-            {
-                char c;
-                while ((c = getchar()) != '\n' && c != EOF); //svuota lo standard input (fflush non funziona)
-                buffer[MAXSCRITTORE-1] ='\n';
-            }
+            if (send(sd, buffer, strlen(buffer)-1, 0) <= 0) break;
         }
-    } while (send(sd, buffer, strlen(buffer)-1, 0) <= 0 && strcmp(buffer, "esci\n") != 0);
+        else //sono stati inseriti più di 15 caratteri
+        {
+            printf("Puoi scrivere al massimo 15 caratteri\n");
+            char c;
+            while ((c = getchar()) != '\n' && c != EOF); //svuota lo standard input (fflush non funziona)
+        }
+    } while (strcmp(buffer, "esci\n") != 0);
     close(sd);
     pthread_exit(NULL);
 }
