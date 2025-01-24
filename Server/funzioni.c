@@ -129,7 +129,6 @@ void cancella_giocatore(struct nodo_giocatore *nodo)
     {
         testa_giocatori = testa_giocatori -> next_node;
         free(nodo);
-        pthread_mutex_unlock(&mutex_giocatori);
     }
     else if (nodo != NULL)
     {
@@ -140,8 +139,8 @@ void cancella_giocatore(struct nodo_giocatore *nodo)
         }
         tmp -> next_node = nodo -> next_node;
         free(nodo);
-        pthread_mutex_unlock(&mutex_giocatori);
     }
+    pthread_mutex_unlock(&mutex_giocatori);
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di gestione partite
 
@@ -413,7 +412,6 @@ void cancella_partita(struct nodo_partita *nodo)
     {
         testa_partite = testa_partite -> next_node;
         free(nodo);
-        pthread_mutex_unlock(&mutex_partite);
     }
     else if (nodo != NULL)
     {
@@ -424,8 +422,8 @@ void cancella_partita(struct nodo_partita *nodo)
         }
         tmp -> next_node = nodo -> next_node;
         free(nodo);
-        pthread_mutex_unlock(&mutex_partite);
     }
+    pthread_mutex_unlock(&mutex_partite);
 }
 void segnala_cambiamento_partite()
 { 
