@@ -42,7 +42,6 @@ int main()
     sigaction(SIGFPE, sa, NULL);
 
     free(sa);
-    unsigned short int opt = 1; //1 = abilita, 0 = disabilita
     //il server può terminare solo inviandogli esplicitamente un segnale che lo termina
     while (true)
     {
@@ -51,8 +50,6 @@ int main()
             perror("accept error\n");
             continue;
         }
-        //disattiva l'algoritmo di Nagle per la socket del client riducendo la latenza, utile vista la piccola dimensione dei pacchetti inviati dal server
-        setsockopt(client_sd, SOL_SOCKET, TCP_NODELAY, &opt, sizeof(opt));
         //timer per ricezione
         setsockopt(client_sd, SOL_SOCKET, SO_RCVTIMEO, &timer, sizeof(timer));
         //timer per invio

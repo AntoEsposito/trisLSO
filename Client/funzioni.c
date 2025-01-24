@@ -8,7 +8,7 @@ void* fun_lettore(void *arg)
     memset(buffer, 0, MAXLETTORE);
     int n_byte = 0;
 
-    while ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) <= 0)
+    while ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) > 0)
     {
         buffer[n_byte] = '\n';
         printf("%s", buffer);
@@ -49,15 +49,11 @@ int inizializza_socket(const unsigned int porta)
     if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         perror("socket creation error"), exit(EXIT_FAILURE);
 
-    unsigned short int opt = 1;
+    int opt = 1;
     //opzione reuseaddr per evitare problemi coi riavvii
     if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) 
         perror("set REUSEADDR option error"), exit(EXIT_FAILURE);
 
-    //opzione nodelay per ridurre la latenza
-    if (setsockopt(sd, SOL_SOCKET, TCP_NODELAY, &opt, sizeof(opt)) < 0) 
-        perror("set NODELAY option error"), exit(EXIT_FAILURE);
-    
     struct timeval timer;
     timer.tv_sec = 120;  // Timer di 120 secondi
     timer.tv_usec = 0;
