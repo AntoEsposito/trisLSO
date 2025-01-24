@@ -215,6 +215,8 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
     {
         strcpy(partita -> avversario, nome_avversario);
         partita -> sd_avversario = sd_avversario;
+        struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
+        pthread_kill(proprietario -> tid_giocatore, SIGFPE);
         if (send(sd_proprietario, "Richiesta accettata, inizia la partita", 38, 0) <= 0) error_handler(partita -> sd_proprietario);
         return true;
     }
@@ -235,7 +237,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
     if (send(sd_proprietario, "Partita creata, in attesa di un avversario...", 45, 0) <= 0) error_handler(sd_proprietario);
     segnala_cambiamento_partite();
 
-    //TODO addormentare il thread, verrà svegliato da funzione_lobby()
+    pause();
 
     const int sd_avversario = dati_partita -> sd_avversario;
     char nome_avversario[MAXPLAYER];
@@ -338,7 +340,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
             if (send(sd_avversario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_avversario);
             proprietario -> stato = IN_LOBBY;
             avversario -> stato = IN_LOBBY;
-            //TODO svegliare thread avversario
+            pthread_kill(avversario -> tid_giocatore, SIGFPE);
             rivincita_accettata = false;
         }
         else
@@ -398,9 +400,8 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
             {
                 if (!accetta_partita(partita, sd_giocatore, dati_giocatore -> nome))
                     {if (send(sd_giocatore, "Richiesta di unione rifiutata", 29, 0) <= 0) error_handler(sd_giocatore);}
-                else 
-                    ;//TODO svegliare il thread proprietario
-                    ;//TODO addormentare questo thread, verrà svegliato da gioca_partita()
+                else                     
+                    pause();
             }
         }
     } while (connesso);
@@ -513,6 +514,8 @@ void* thread_giocatore(void *sd)
     pthread_exit(NULL);
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di signal handling
+
+void handler_sveglia() {}
 
 void sigalrm_handler()
 {
