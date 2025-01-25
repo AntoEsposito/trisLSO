@@ -217,7 +217,8 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
         partita -> sd_avversario = sd_avversario;
         struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
         pthread_kill(proprietario -> tid_giocatore, SIGFPE);
-        if (send(sd_proprietario, "Richiesta accettata, inizia la partita", 38, 0) <= 0) error_handler(partita -> sd_proprietario);
+        if (send(sd_proprietario, "Richiesta accettata, inizia la partita!", 39, 0) <= 0) error_handler(partita -> sd_proprietario);
+        if (send(sd_avversario, "Il proprietario ha accettato la richiesta, inizia la partita!", 61, 0) <= 0) error_handler(partita -> sd_proprietario);
         return true;
     }
     return false;
@@ -316,14 +317,14 @@ void gioca_partita(struct nodo_partita *dati_partita)
                 proprietario -> pareggi++;
                 avversario -> pareggi++;
         }
-        dati_partita -> stato = TERMINATA; //non credo importi segnalare a tutti i giocatori in lobby ogni rivincita
+        dati_partita -> stato = TERMINATA;
         segnala_cambiamento_partite();
 
         //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
         char risposta = '\0';
 
         if (send(sd_avversario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_avversario);
-        if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);            //si potrebbe aggiungere un timer per mancata risposta
+        if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);
         risposta = toupper(risposta);
         
         if (risposta != 'S') {if (send(sd_proprietario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_proprietario);}
@@ -331,7 +332,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
         {
             if (send(sd_proprietario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_proprietario);  //problema: il proprietario rimane in attesa della risposta dell'avversario senza saperlo
             if (send(sd_avversario, "In attesa di risposta dall'avversario", 37, 0) <= 0) error_handler(sd_avversario);
-            if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);    //si potrebbe aggiungere un timer per mancata risposta
+            if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);
             risposta = toupper(risposta);
         }
 

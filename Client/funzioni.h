@@ -1,9 +1,7 @@
 #ifndef FUNZIONI_H
 #define FUNZIONI_H
 
-#define MAXLETTORE 256
-#define MAXSCRITTORE 16
-
+#include "strutturedati.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -13,7 +11,6 @@
 #include <errno.h>
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
-#include <pthread.h>
 #include <signal.h>
 #include <stdbool.h>
 
@@ -23,5 +20,23 @@ int inizializza_socket(unsigned const int porta);
 void* fun_lettore(void *arg);
 //funzione che scrive sulla socket
 void* fun_scrittore(void *arg);
+//funzione che gestisce la partita tra 2 giocatori, incluse eventuali rivincite
+void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo);
+//aggiorna e stampa la griglia di gioco e il numero giocate, invia la giocata e l'esito della partita al server, restituisce l'esito
+char invia_giocata(unsigned short int *n_giocate, const int sd);
+//riceve la giocata dal server, aggiorna e stampa la griglia, restituisce l'esito
+char ricevi_giocata(unsigned short int *n_giocate, const int sd);
+//controlla chi ha vinto e restituisce l'esito
+char controllo_esito(const unsigned short int *n_giocate);
+//controlla se il giocatore ha inserito un input valido
+bool controllo_giocata(const int giocata);
+//inserisce O nella griglia in base alla giocata del giocatore
+void inserisci_O(const unsigned short int giocata);
+//inserisce X nella griglia in base alla giocata dell'avversario
+void inserisci_X(const unsigned short int giocata);
+//stampa la griglia attuale
+void stampa_griglia();
+//manda un messaggio di errore e chiude il processo
+void error_handler(const int sd);
 
 #endif

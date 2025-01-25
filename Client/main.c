@@ -1,5 +1,8 @@
 #include "funzioni.h"
 
+char griglia[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
+pthread_mutex_t mutex_scrittura = PTHREAD_MUTEX_INITIALIZER;
+
 int main(int argc, char *argv[])
 {
     if(argc!=2)
@@ -22,6 +25,8 @@ int main(int argc, char *argv[])
     pthread_join(tid_lettore, NULL);
     pthread_join(tid_scrittore, NULL);
 
-    printf("Uscita\n");
+    if (errno = ETIMEDOUT) printf("Disconnesso per inattività\n");
+    else if (errno = ECONNRESET) printf("Si è verificato un errore di rete\n");
+    else printf("Uscita\n");
     return 0;
 }

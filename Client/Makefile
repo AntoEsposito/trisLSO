@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -O3
+CFLAGS = -Wall -Wextra -O3
 TARGET = client
 OBJS = main.o funzioni.o 
 
@@ -11,7 +11,7 @@ $(TARGET): $(OBJS)
 main.o: main.c funzioni.h
 	$(CC) $(CFLAGS) -c main.c
 
-funzioni.o: funzioni.c funzioni.h
+funzioni.o: funzioni.c funzioni.h strutturedati.h
 	$(CC) $(CFLAGS) -c funzioni.c
 
 clean:

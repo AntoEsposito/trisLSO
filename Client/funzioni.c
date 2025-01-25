@@ -3,16 +3,17 @@
 void* fun_lettore(void *arg)
 {
     const int sd = *((int *)arg);
-
-    char buffer[MAXLETTORE];
-    memset(buffer, 0, MAXLETTORE);
+    char inbuffer[MAXLETTORE];
+    memset(inbuffer, 0, MAXLETTORE);
     int n_byte = 0;
 
-    while ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) > 0)
+    while ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) > 0)
     {
-        buffer[n_byte] = '\n';
-        printf("%s", buffer);
-        memset(buffer, 0, MAXLETTORE);
+        inbuffer[n_byte] = '\n';
+        printf("%s", inbuffer);
+        if (strcmp(inbuffer, "Richiesta accettata, inizia la partita!\n") == 0) gioca_partite(inbuffer,sd, PROPRIETARIO);
+        else if (strcmp(inbuffer, "Il proprietario ha accettato la richiesta, inizia la partita!\n") == 0) gioca_partite(inbuffer, sd, AVVERSARIO);
+        memset(inbuffer, 0, MAXLETTORE);
     }
     close(sd);
     pthread_exit(NULL);
@@ -20,25 +21,194 @@ void* fun_lettore(void *arg)
 void* fun_scrittore(void *arg)
 {
     const int sd = *((int *)arg);
-    char buffer[MAXSCRITTORE];
+    char outbuffer[MAXSCRITTORE];
 
     do
     {
-        memset(buffer, 0, MAXSCRITTORE);
+        memset(outbuffer, 0, MAXSCRITTORE);
         //strnlen è più sicura di strlen per stringhe che potrebbero non terminare con \0 come in questo caso
-        if (fgets(buffer, MAXSCRITTORE, stdin) != NULL && buffer[strnlen(buffer, MAXSCRITTORE)-1] == '\n') //massimo 15 caratteri nel buffer escluso \n
+        if (fgets(outbuffer, MAXSCRITTORE, stdin) != NULL && outbuffer[strnlen(outbuffer, MAXSCRITTORE)-1] == '\n') //massimo 15 caratteri nel buffer escluso \n
         {
-            if (send(sd, buffer, strlen(buffer)-1, 0) <= 0) break;
+            if (send(sd, outbuffer, strlen(outbuffer)-1, 0) <= 0) break;
         }
-        else //sono stati inseriti più di 15 caratteri
+        else //sono stati scritti più di 15 caratteri
         {
             printf("Puoi scrivere al massimo 15 caratteri\n");
-            char c;
+            int c;
             while ((c = getchar()) != '\n' && c != EOF); //svuota lo standard input (fflush non funziona)
         }
-    } while (strcmp(buffer, "esci\n") != 0);
+    } while (strcmp(outbuffer, "esci\n") != 0);
     close(sd);
     pthread_exit(NULL);
+}
+void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo)
+{
+    int n_byte = 0;
+    unsigned int round = 0;
+    {
+        memset(griglia, 0, 9);
+        round++;
+        unsigned short int n_giocate = 0;
+        char esito = '0';
+        do
+        {
+            memset(inbuffer, 0, MAXLETTORE);
+
+            //controllo che serve a distinguere chi comincia per primo
+            if ((tipo == PROPRIETARIO && round%2 == 1) || (tipo == AVVERSARIO && round%2 == 0))
+            {   //ogni player vede egli stesso come O e l'avversario come X
+                if (n_giocate == 0) //primo turno
+                {
+                    stampa_griglia();
+                    //messaggio "tocca a te"
+                    if ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
+                    inbuffer[n_byte] = '\n'; printf("%s", inbuffer);
+                    esito = invia_giocata(&n_giocate, sd);
+                }
+                else //dal secondo turno in poi deve prima ricevere la giocata dell'avversario e poi iniziare il suo turno
+                {
+                    if ((esito = ricevi_giocata(&n_giocate, sd)) != '0') break;
+                    //messaggio "tocca a te"
+                    if ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
+                    inbuffer[n_byte] = '\n'; printf("%s", inbuffer);
+                    esito = invia_giocata(&n_giocate, sd);     
+                }
+            }
+            else
+            {
+                if ((esito = ricevi_giocata(&n_giocate, sd)) != '0') break;
+                //messaggio "tocca a te"
+                if ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
+                inbuffer[n_byte] = '\n'; printf("%s", inbuffer);
+                esito = invia_giocata(&n_giocate, sd);     
+            }
+
+        } while (esito == '0');
+    }
+}
+char invia_giocata(unsigned short int *n_giocate, const int sd)
+{ 
+    int c; //variabile ausiliaria per pulire lo stdin
+    char giocata[2] = {'\0', '\0'};
+    int num_giocata = 0;
+    bool giocata_valida = false;
+    char esito = '0';
+
+    do
+    {
+        printf("Scrivi un numero da 1 a 9 per indicare dove posizionare la O\n");
+        giocata[0] = getchar();
+        num_giocata = atoi(giocata);
+        giocata_valida = controllo_giocata(num_giocata);
+        while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
+        if (!giocata_valida) printf("Giocata non valida\n"); 
+    } while(!giocata_valida);
+
+    //giocata valida, può essereinviata al server
+    if (send(sd, giocata, 1, 0) <= 0) error_handler(sd);
+
+    //inserisce la giocata nella propria griglia locale e invia l'esito al server
+    inserisci_O(num_giocata);
+    stampa_griglia();
+    n_giocate++;
+
+    //ha senso controllare l'esito solo se sono state fatte almeno 5 giocate
+    if (*(n_giocate) >= 5) esito = controllo_esito(n_giocate);
+    if (send(sd, &esito, 1, 0) <= 0) error_handler(sd);
+    return esito;
+}
+char ricevi_giocata(unsigned short int *n_giocate, const int sd)
+{
+    char giocata[2] = {'\0', '\0'};
+    char num_giocata = 0;
+    char esito = '0';
+
+    //da per scontato che la giocata sia valida
+    if (recv(sd, giocata, 1, 0) <= 0) error_handler(sd);
+    num_giocata = atoi(giocata);
+
+    inserisci_X(num_giocata);
+    stampa_griglia();
+    n_giocate++;
+
+    esito = controllo_esito(n_giocate);
+    //non invia l'esito perchè se ne occupa chi invia la giocata
+    return esito; 
+}
+char controllo_esito(const unsigned short int *n_giocate)
+{
+    char esito = '0';
+    //se la funzione trova un tris di O restituisce 1, tris di X restituisce 2, pareggio restituisce 3
+    // Controlla le righe
+    for (int i = 0; i < 3; i++) 
+    {
+        if (griglia[i][0] != '\0' && griglia[i][0] == griglia[i][1] && griglia[i][1] == griglia[i][2])
+        {
+            if(griglia[i][0] == 'O') esito = '1';
+            else esito = '2';
+        }
+    }
+    // Controlla le colonne
+    for (int i = 0; i < 3; i++) 
+    {
+        if (griglia[0][i] != '\0' && griglia[0][i] == griglia[1][i] && griglia[1][i] == griglia[2][i])
+        {
+            if(griglia[0][i] == 'O') esito = '1';
+            else esito = '2';
+        }
+    }
+    // Controlla la diagonale principale
+    if (griglia[0][0] != '\0' && griglia[0][0] == griglia[1][1] && griglia[1][1] == griglia[2][2])
+    {
+        if(griglia[0][0] == 'O') esito = '1';
+        else esito = '2';
+    }
+    // Controlla la diagonale secondaria
+    if (griglia [0][2] != '\0' && griglia[0][2] == griglia[1][1] && griglia[1][1] == griglia[2][0])
+    {
+        if(griglia[0][2] == 'O') esito = '1';
+        else esito = '2';
+    }
+    //controlla un eventuale pareggio 
+    if (esito == '0' && *n_giocate == 9) esito = '3';
+    return esito;
+}
+bool controllo_giocata(const int giocata)
+{
+    if (giocata < 1) return false;
+    if (giocata > 9) return false;
+
+    //controlla se la casella selezionata è gia occupata
+    int indice = giocata - 1;
+    const unsigned short int i_colonna = indice%3;
+    const unsigned short int i_riga = indice/3;
+    if (griglia[i_riga][i_colonna] != '\0') return false;
+    else return true;
+}
+void inserisci_O(const unsigned short int giocata)
+{
+    int indice = giocata - 1;
+    const unsigned short int i_colonna = indice%3;
+    const unsigned short int i_riga = indice/3;
+    griglia[i_riga][i_colonna] = 'O';
+}
+void inserisci_X(const unsigned short int giocata)
+{
+    int indice = giocata - 1;
+    const unsigned short int i_colonna = indice%3;
+    const unsigned short int i_riga = indice/3;
+    griglia[i_riga][i_colonna] = 'X';
+}
+void stampa_griglia()
+{
+    for(int i=0; i<3; i++) printf("|   %c   |", griglia[0][i]);
+    printf("\n");
+
+    for(int i=0; i<3; i++) printf("|   %c   |", griglia[1][i]);
+    printf("\n");
+
+    for(int i=0; i<3; i++) printf("|   %c   |", griglia[2][i]);
+    printf("\n");
 }
 int inizializza_socket(const unsigned int porta)
 {
@@ -78,4 +248,10 @@ int inizializza_socket(const unsigned int porta)
         perror("connect error"), exit(EXIT_FAILURE);
 
     return sd;
+}
+void error_handler(const int sd)
+{
+    printf("errore\n");
+    close(sd);
+    exit(EXIT_FAILURE);
 }
