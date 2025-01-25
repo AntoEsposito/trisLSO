@@ -322,23 +322,23 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
         //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
         char risposta = '\0';
+        if (send(sd_proprietario, "L'avversario sta scegliendo se chiederti la rivincita, attendi...", 65, 0) <= 0) error_handler(sd_proprietario);
 
         if (send(sd_avversario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_avversario);
         if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);
-        risposta = toupper(risposta);
         
-        if (risposta != 'S') {if (send(sd_proprietario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_proprietario);}
+        if (risposta != 'S') {if (send(sd_proprietario, "Rivincita rifiutata dall'avversario", 35, 0) <= 0) error_handler(sd_proprietario);}
         else 
         {
-            if (send(sd_proprietario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_proprietario);  //problema: il proprietario rimane in attesa della risposta dell'avversario senza saperlo
-            if (send(sd_avversario, "In attesa di risposta dall'avversario", 37, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_avversario, "In attesa del proprietario...", 29, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_proprietario, "L'avversario vuole la rivincita, accetti? [s/n]", 47, 0) <= 0) error_handler(sd_proprietario);
             if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);
-            risposta = toupper(risposta);
         }
 
         if(risposta != 'S') //si torna alla lobby
         {
             if (send(sd_avversario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_proprietario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_proprietario);
             proprietario -> stato = IN_LOBBY;
             avversario -> stato = IN_LOBBY;
             pthread_kill(avversario -> tid_giocatore, SIGFPE);

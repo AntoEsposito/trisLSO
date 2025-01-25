@@ -1,18 +1,18 @@
 #ifndef FUNZIONI_H
 #define FUNZIONI_H
 
-#include "strutturedati.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
+#include <ctype.h>
 #include <unistd.h>
+#include <errno.h>
+#include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
-#include <errno.h>
 #include <arpa/inet.h>
-#include <netinet/tcp.h>
 #include <signal.h>
 #include <stdbool.h>
+#include "strutturedati.h"
 
 //si connette alla socket del server, restituisce il sd del client
 int inizializza_socket(unsigned const int porta);
@@ -20,6 +20,8 @@ int inizializza_socket(unsigned const int porta);
 void* thread_fun(void *arg);
 //funzione che scrive sulla socket
 void* fun_scrittore(void *arg);
+//gestisce la richiesta di rivincita, restituisce true se la rivincita è stata accettata
+bool rivincita(const int sd, const enum tipo_giocatore tipo);
 //funzione che gestisce la partita tra 2 giocatori, incluse eventuali rivincite
 void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo);
 //aggiorna e stampa la griglia di gioco e il numero giocate, invia la giocata e l'esito della partita al server, restituisce l'esito

@@ -63,6 +63,7 @@ void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo)
 {
     int n_byte = 0;
     unsigned int round = 0;
+    do
     {
         memset(griglia, 0, 9);
         round++;
@@ -71,6 +72,7 @@ void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo)
         do
         {
             memset(inbuffer, 0, MAXLETTORE);
+            printf("Round %u", round);
 
             //controllo che serve a distinguere chi comincia per primo
             if ((tipo == PROPRIETARIO && round%2 == 1) || (tipo == AVVERSARIO && round%2 == 0))
@@ -102,7 +104,54 @@ void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo)
             }
 
         } while (esito == '0');
+    } while (rivincita(sd, tipo));
+}
+bool rivincita(const int sd, const enum tipo_giocatore tipo)
+{
+    char buffer[MAXLETTORE];
+    memset(buffer, 0, MAXLETTORE);
+    char risposta;
+    int c;
+    int n_byte = 0;
+    bool risposta_valida = false;
+
+    if (tipo == PROPRIETARIO) //al proprietario viene chiesto di attendere l'avversario
+    {
+        if ((n_byte = recv(sd, buffer, MAXLETTORE, 0) <= 0)) error_handler(sd);
+        buffer[n_byte] = '\n'; printf("%s", buffer);
+        memset(buffer, 0, MAXLETTORE);
     }
+    if ((n_byte = recv(sd, buffer, MAXLETTORE, 0) <= 0)) error_handler(sd);
+    buffer[n_byte] = '\n'; printf("%s", buffer);
+
+    do //verifica che l'input sia valido
+    {
+        if (strcmp(buffer, "Rivincita rifiutata dall'avversario\n") == 0) break; //questo messaggio può riceverlo solo il proprietario
+        else memset(buffer, 0, MAXLETTORE);
+
+        risposta = getchar();
+        while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
+        risposta = toupper(risposta);
+        if (risposta != 'S' && risposta != 'N') printf("Scrivi una risposta valida\n"); 
+        else risposta_valida = true;
+    } while(!risposta_valida);
+
+    //input corretto, lo invia al server (nel caso del proprietario potrebbe non essercene bisogno)
+    if (risposta_valida) {if (send(sd, &risposta, 1, 0 ) <= 0) error_handler(sd);}
+    else return false;
+
+    if (tipo == AVVERSARIO) //all'avversario viene chiesto di attendere il proprietario (se ha scelto la rivincita)
+    {
+        if ((n_byte = recv(sd, buffer, MAXLETTORE, 0) <= 0)) error_handler(sd);
+        buffer[n_byte] = '\n'; printf("%s", buffer);
+        if (strcmp(buffer, "Rivincita rifiutata\n")) return false;
+        memset(buffer, 0, MAXLETTORE);
+    }
+    //riceve e stampa feedback positivo o negativo
+    if ((n_byte = recv(sd, buffer, MAXLETTORE, 0) <= 0)) error_handler(sd);
+    buffer[n_byte] = '\n'; printf("%s", buffer);
+    if (strcmp(buffer, "Rivincita rifiutata\n")) return false;
+    else return true;
 }
 char invia_giocata(unsigned short int *n_giocate, const int sd)
 { 
@@ -162,8 +211,8 @@ char controllo_esito(const unsigned short int *n_giocate)
     {
         if (griglia[i][0] != '\0' && griglia[i][0] == griglia[i][1] && griglia[i][1] == griglia[i][2])
         {
-            if(griglia[i][0] == 'O') esito = '1';
-            else esito = '2';
+            if(griglia[i][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+            else { esito = '2'; printf("Vince l'avversario\n"); }
         }
     }
     // Controlla le colonne
@@ -171,24 +220,24 @@ char controllo_esito(const unsigned short int *n_giocate)
     {
         if (griglia[0][i] != '\0' && griglia[0][i] == griglia[1][i] && griglia[1][i] == griglia[2][i])
         {
-            if(griglia[0][i] == 'O') esito = '1';
-            else esito = '2';
+            if(griglia[i][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+            else { esito = '2'; printf("Vince l'avversario\n"); }
         }
     }
     // Controlla la diagonale principale
     if (griglia[0][0] != '\0' && griglia[0][0] == griglia[1][1] && griglia[1][1] == griglia[2][2])
     {
-        if(griglia[0][0] == 'O') esito = '1';
-        else esito = '2';
+            if(griglia[0][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+            else { esito = '2'; printf("Vince l'avversario\n"); }
     }
     // Controlla la diagonale secondaria
     if (griglia [0][2] != '\0' && griglia[0][2] == griglia[1][1] && griglia[1][1] == griglia[2][0])
     {
-        if(griglia[0][2] == 'O') esito = '1';
-        else esito = '2';
+            if(griglia[0][2] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+            else { esito = '2'; printf("Vince l'avversario\n"); }
     }
     //controlla un eventuale pareggio 
-    if (esito == '0' && *n_giocate == 9) esito = '3';
+    if (esito == '0' && *n_giocate == 9) { esito = '3'; printf("Pareggio\n"); }
     return esito;
 }
 bool controllo_giocata(const int giocata)
