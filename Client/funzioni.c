@@ -1,18 +1,36 @@
 #include "funzioni.h"
 
-void* fun_lettore(void *arg)
+void* thread_fun(void *arg)
 {
     const int sd = *((int *)arg);
     char inbuffer[MAXLETTORE];
     memset(inbuffer, 0, MAXLETTORE);
     int n_byte = 0;
 
+    //il thread lettore crea un thread scrittore detatched
+    pthread_t tid_scrittore;
+    pthread_attr_t attr;
+    pthread_attr_init(&attr);
+    pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
+    pthread_create(&tid_scrittore, &attr, fun_scrittore, arg);
+
+    //il thread scrittore viene ucciso per giocare le partite per evitare conflitti con le send
     while ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) > 0)
     {
         inbuffer[n_byte] = '\n';
         printf("%s", inbuffer);
-        if (strcmp(inbuffer, "Richiesta accettata, inizia la partita!\n") == 0) gioca_partite(inbuffer,sd, PROPRIETARIO);
-        else if (strcmp(inbuffer, "Il proprietario ha accettato la richiesta, inizia la partita!\n") == 0) gioca_partite(inbuffer, sd, AVVERSARIO);
+        if (strcmp(inbuffer, "Richiesta accettata, inizia la partita!\n") == 0) 
+        {
+            pthread_kill(tid_scrittore, SIGUSR1);
+            gioca_partite(inbuffer,sd, PROPRIETARIO);
+            pthread_create(&tid_scrittore, &attr, fun_scrittore, arg);
+        }
+        else if (strcmp(inbuffer, "Il proprietario ha accettato la richiesta, inizia la partita!\n") == 0) 
+        {
+            pthread_kill(tid_scrittore, SIGUSR1);
+            gioca_partite(inbuffer,sd, PROPRIETARIO);
+            pthread_create(&tid_scrittore, &attr, fun_scrittore, arg);
+        }
         memset(inbuffer, 0, MAXLETTORE);
     }
     close(sd);
@@ -254,4 +272,8 @@ void error_handler(const int sd)
     printf("errore\n");
     close(sd);
     exit(EXIT_FAILURE);
+}
+void SIGUSR1_handler()
+{
+    pthread_exit(NULL);
 }

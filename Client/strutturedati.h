@@ -16,7 +16,4 @@ enum tipo_giocatore
 
 extern char griglia[3][3];
 
-//la funzione partita userà questo mutex per bloccare il thread scrittore principale
-extern pthread_mutex_t mutex_scrittura;
-
 #endif

@@ -17,7 +17,7 @@
 //si connette alla socket del server, restituisce il sd del client
 int inizializza_socket(unsigned const int porta);
 //funzione che legge dalla socket
-void* fun_lettore(void *arg);
+void* thread_fun(void *arg);
 //funzione che scrive sulla socket
 void* fun_scrittore(void *arg);
 //funzione che gestisce la partita tra 2 giocatori, incluse eventuali rivincite
@@ -38,5 +38,7 @@ void inserisci_X(const unsigned short int giocata);
 void stampa_griglia();
 //manda un messaggio di errore e chiude il processo
 void error_handler(const int sd);
+//uccide il thread quando viene inviato il segnale SIGUSR1
+void SIGUSR1_handler();
 
 #endif
