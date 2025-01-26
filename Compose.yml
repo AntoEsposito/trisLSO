@@ -1,0 +1,20 @@
+services:
+  server:
+    build:
+      context: ./Server  #Contesto di build per il server (cartella server/)
+    #non esponiamo porte poichè sia client che server sono sulla stessa rete interna docker
+    networks:
+      - tris_network
+
+  client:
+    build:
+      context: ./Client  #Contesto di build per il client (cartella client/)
+    depends_on:
+      - server  #Garantisce che il server sia avviato prima del client
+    networks:
+      - tris_network
+
+networks:
+  tris_network:  #Crea una rete comune per client e server
+    driver: bridge #driver più comunemente usato per un network docker
+

@@ -2,18 +2,12 @@
 
 char griglia[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
 
-int main(int argc, char *argv[])
+int main()
 {
-    if(argc!=2)
-    {
-        printf("specificare porta del client");
-        exit(EXIT_FAILURE);
-    }
     signal(SIGUSR1, SIGUSR1_handler);
     pthread_t tid;
 
-    const unsigned int porta = atoi(argv[1]);
-    int sd = inizializza_socket(porta);
+    int sd = inizializza_socket();
 
     if (pthread_create(&tid, NULL, thread_fun, &sd) < 0)
         perror("thread creation error"), exit(EXIT_FAILURE);
