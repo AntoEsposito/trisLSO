@@ -9,5 +9,5 @@ COPY . .
 #Compila con make
 RUN make
 #non c'e bisogno di esporre la porta se client e server sono nella stessa rete docker
-#Comando per avviare il server
-CMD ["./server"]
+#Comando per avviare il server in background
+CMD ["./server", "&"]
