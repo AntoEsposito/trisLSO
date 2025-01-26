@@ -15,7 +15,7 @@
 #include "strutturedati.h"
 
 //si connette alla socket del server, restituisce il sd del client
-int inizializza_socket(unsigned const int porta);
+int inizializza_socket();
 //funzione che legge dalla socket
 void* thread_fun(void *arg);
 //funzione che scrive sulla socket
