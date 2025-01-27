@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -Wall -O3
+CFLAGS = -Wall -Wextra -O3
 TARGET = server
 OBJS = main.o funzioni.o 
 

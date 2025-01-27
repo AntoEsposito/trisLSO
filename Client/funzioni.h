@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
+#include <netinet/tcp.h>
 #include <signal.h>
 #include <stdbool.h>
 #include "strutturedati.h"
@@ -24,9 +25,9 @@ void* fun_scrittore(void *arg);
 bool rivincita(const int sd, const enum tipo_giocatore tipo);
 //funzione che gestisce la partita tra 2 giocatori, incluse eventuali rivincite
 void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo);
-//aggiorna e stampa la griglia di gioco e il numero giocate, invia la giocata e l'esito della partita al server, restituisce l'esito
+//aggiorna la griglia di gioco e il numero giocate, invia la giocata e l'esito della partita al server, restituisce l'esito
 char invia_giocata(unsigned short int *n_giocate, const int sd);
-//riceve la giocata dal server, aggiorna e stampa la griglia, restituisce l'esito
+//riceve la giocata dal server, aggiorna la griglia, restituisce l'esito
 char ricevi_giocata(unsigned short int *n_giocate, const int sd);
 //controlla chi ha vinto e restituisce l'esito
 char controllo_esito(const unsigned short int *n_giocate);

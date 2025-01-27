@@ -266,7 +266,8 @@ void gioca_partita(struct nodo_partita *dati_partita)
         round++;
 
         char giocata = '\0';
-        char esito = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
+        char esito_proprietario = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
+        char esito_avversario = '0';
         //'0' = ancora in corso '1' = vince proprietario, '2' = vince avversario, '3' = pareggio
         //si potrebbero usare costanti locali per migliore leggibilità
 
@@ -276,61 +277,52 @@ void gioca_partita(struct nodo_partita *dati_partita)
             if (round%2 != 0)
             {
                 //inizia il proprietario
-                if (send(sd_proprietario, "Tocca a te", 10, 0) <= 0) error_handler(sd_proprietario);
                 if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
-                if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
+                if (recv(sd_proprietario, &esito_proprietario, 1, 0) <= 0) error_handler(sd_proprietario);
                 if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
-                if (esito != '0') break;
+                if (esito_proprietario != '0') break;
 
                 //turno dell'avversario
-                if (send(sd_avversario, "Tocca a te", 10, 0) <= 0) error_handler(sd_avversario);
                 if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
-                if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
+                if (recv(sd_avversario, &esito_avversario, 1, 0) <= 0) error_handler(sd_avversario);
                 if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
             }
             else 
             {
                 //inizia l'avversario
-                if (send(sd_avversario, "Tocca a te", 10, 0) <= 0) error_handler(sd_avversario);
                 if (recv(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
-                if (recv(sd_avversario, &esito, 1, 0) <= 0) error_handler(sd_avversario);
+                if (recv(sd_avversario, &esito_avversario, 1, 0) <= 0) error_handler(sd_avversario);
                 if (send(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
-                if (esito != '0') break;
+                if (esito_avversario != '0') break;
 
                 //turno del proprietario
-                if (send(sd_proprietario, "Tocca a te", 10, 0) <= 0) error_handler(sd_proprietario);
                 if (recv(sd_proprietario, &giocata, 1, 0) <= 0) error_handler(sd_proprietario);
-                if (recv(sd_proprietario, &esito, 1, 0) <= 0) error_handler(sd_proprietario);
+                if (recv(sd_proprietario, &esito_proprietario, 1, 0) <= 0) error_handler(sd_proprietario);
                 if (send(sd_avversario, &giocata, 1, 0) <= 0) error_handler(sd_avversario);
             }
-        } while (esito == '0');
-
-        //scambio dell'esito di vittoria nei round pari
-        if (round%2 == 0)
-        {
-            if (esito == '1') esito = '2';
-            else if (esito == '2') esito = '1';
-        }
+        } while (esito_proprietario == '0' && esito_avversario == '0');
 
         //si aggiornano i contatori dei giocatori
-        switch (esito)
+        switch (esito_proprietario)
         {
             case '1':
                 proprietario -> vittorie++;
                 avversario -> sconfitte++;
+                break;
             case '2': 
                 proprietario -> sconfitte++;
                 avversario -> vittorie++;
+                break;
             default:
                 proprietario -> pareggi++;
                 avversario -> pareggi++;
+                break;
         }
         dati_partita -> stato = TERMINATA;
         segnala_cambiamento_partite();
 
         //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
         char risposta = '\0';
-        if (send(sd_proprietario, "L'avversario sta scegliendo se chiederti la rivincita, attendi...", 65, 0) <= 0) error_handler(sd_proprietario);
 
         if (send(sd_avversario, "Rivincita? [s/n]", 16, 0) <= 0) error_handler(sd_avversario);
         if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);

@@ -28,7 +28,7 @@ void* thread_fun(void *arg)
         else if (strcmp(inbuffer, "Il proprietario ha accettato la richiesta, inizia la partita!\n") == 0) 
         {
             pthread_kill(tid_scrittore, SIGUSR1);
-            gioca_partite(inbuffer,sd, PROPRIETARIO);
+            gioca_partite(inbuffer,sd, AVVERSARIO);
             pthread_create(&tid_scrittore, &attr, fun_scrittore, arg);
         }
         memset(inbuffer, 0, MAXLETTORE);
@@ -65,14 +65,16 @@ void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo)
     unsigned int round = 0;
     do
     {
+
         memset(griglia, 0, 9);
         round++;
         unsigned short int n_giocate = 0;
         char esito = '0';
+        printf("Round %u", round);
+        if (tipo == AVVERSARIO ) printf("\nIn attesa del proprietario\n");
         do
         {
             memset(inbuffer, 0, MAXLETTORE);
-            printf("Round %u", round);
 
             //controllo che serve a distinguere chi comincia per primo
             if ((tipo == PROPRIETARIO && round%2 == 1) || (tipo == AVVERSARIO && round%2 == 0))
@@ -80,31 +82,77 @@ void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo)
                 if (n_giocate == 0) //primo turno
                 {
                     stampa_griglia();
-                    //messaggio "tocca a te"
-                    if ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
-                    inbuffer[n_byte] = '\n'; printf("%s", inbuffer);
+                    printf("Tocca a te\n");
                     esito = invia_giocata(&n_giocate, sd);
+                    printf("Turno dell'avversario\n");
                 }
                 else //dal secondo turno in poi deve prima ricevere la giocata dell'avversario e poi iniziare il suo turno
                 {
                     if ((esito = ricevi_giocata(&n_giocate, sd)) != '0') break;
-                    //messaggio "tocca a te"
-                    if ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
-                    inbuffer[n_byte] = '\n'; printf("%s", inbuffer);
-                    esito = invia_giocata(&n_giocate, sd);     
+                    printf("Tocca a te\n");
+                    if ((esito = invia_giocata(&n_giocate, sd)) != '0') break;
+                    printf("Turno dell'avversario\n");
                 }
             }
             else
             {
                 if ((esito = ricevi_giocata(&n_giocate, sd)) != '0') break;
-                //messaggio "tocca a te"
-                if ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
-                inbuffer[n_byte] = '\n'; printf("%s", inbuffer);
-                esito = invia_giocata(&n_giocate, sd);     
+                printf("Tocca a te\n");
+                if ((esito = invia_giocata(&n_giocate, sd)) != '0') break;
+                printf("Turno dell'avversario\n");
             }
-
         } while (esito == '0');
+
     } while (rivincita(sd, tipo));
+}
+char invia_giocata(unsigned short int *n_giocate, const int sd)
+{ 
+    int c; //variabile ausiliaria per pulire lo stdin
+    char giocata[2] = {'\0', '\0'};
+    int num_giocata = 0;
+    bool giocata_valida = false;
+    char esito = '0';
+
+    do
+    {
+        printf("Scrivi un numero da 1 a 9 per indicare dove posizionare la O\n");
+        giocata[0] = getchar();
+        num_giocata = atoi(giocata);
+        giocata_valida = controllo_giocata(num_giocata);
+        while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
+        if (!giocata_valida) printf("Giocata non valida\n"); 
+    } while(!giocata_valida);
+
+    //giocata valida, può essere inviata al server
+    if (send(sd, giocata, 1, 0) <= 0) error_handler(sd);
+
+    //inserisce la giocata nella propria griglia locale e invia l'esito al server
+    inserisci_O(num_giocata);
+    (*n_giocate)++;
+    stampa_griglia();
+
+    //ha senso controllare l'esito solo se sono state fatte almeno 5 giocate
+    if (*(n_giocate) >= 5) esito = controllo_esito(n_giocate);
+    if (send(sd, &esito, 1, 0) <= 0) error_handler(sd);
+    return esito;
+}
+char ricevi_giocata(unsigned short int *n_giocate, const int sd)
+{
+    char giocata[2] = {'\0', '\0'};
+    char num_giocata = 0;
+    char esito = '0';
+
+    //da per scontato che la giocata sia valida
+    if (recv(sd, giocata, 1, 0) <= 0) error_handler(sd);
+    num_giocata = atoi(giocata);
+
+    inserisci_X(num_giocata);
+    (*n_giocate)++;
+    stampa_griglia();
+
+    esito = controllo_esito(n_giocate);
+    //non invia l'esito perchè se ne occupa chi invia la giocata
+    return esito; 
 }
 bool rivincita(const int sd, const enum tipo_giocatore tipo)
 {
@@ -115,13 +163,10 @@ bool rivincita(const int sd, const enum tipo_giocatore tipo)
     int n_byte = 0;
     bool risposta_valida = false;
 
-    if (tipo == PROPRIETARIO) //al proprietario viene chiesto di attendere l'avversario
-    {
-        if ((n_byte = recv(sd, buffer, MAXLETTORE, 0) <= 0)) error_handler(sd);
-        buffer[n_byte] = '\n'; printf("%s", buffer);
-        memset(buffer, 0, MAXLETTORE);
-    }
-    if ((n_byte = recv(sd, buffer, MAXLETTORE, 0) <= 0)) error_handler(sd);
+    if (tipo == PROPRIETARIO) printf("L'avversario sta scegliendo se vuole o meno la rivincita\n");
+
+    //riposta dell'avversario
+    if ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
     buffer[n_byte] = '\n'; printf("%s", buffer);
 
     do //verifica che l'input sia valido
@@ -142,65 +187,16 @@ bool rivincita(const int sd, const enum tipo_giocatore tipo)
 
     if (tipo == AVVERSARIO) //all'avversario viene chiesto di attendere il proprietario (se ha scelto la rivincita)
     {
-        if ((n_byte = recv(sd, buffer, MAXLETTORE, 0) <= 0)) error_handler(sd);
+        if ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
         buffer[n_byte] = '\n'; printf("%s", buffer);
-        if (strcmp(buffer, "Rivincita rifiutata\n")) return false;
+        if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false;
         memset(buffer, 0, MAXLETTORE);
     }
     //riceve e stampa feedback positivo o negativo
-    if ((n_byte = recv(sd, buffer, MAXLETTORE, 0) <= 0)) error_handler(sd);
+    if ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
     buffer[n_byte] = '\n'; printf("%s", buffer);
-    if (strcmp(buffer, "Rivincita rifiutata\n")) return false;
+    if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false;
     else return true;
-}
-char invia_giocata(unsigned short int *n_giocate, const int sd)
-{ 
-    int c; //variabile ausiliaria per pulire lo stdin
-    char giocata[2] = {'\0', '\0'};
-    int num_giocata = 0;
-    bool giocata_valida = false;
-    char esito = '0';
-
-    do
-    {
-        printf("Scrivi un numero da 1 a 9 per indicare dove posizionare la O\n");
-        giocata[0] = getchar();
-        num_giocata = atoi(giocata);
-        giocata_valida = controllo_giocata(num_giocata);
-        while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
-        if (!giocata_valida) printf("Giocata non valida\n"); 
-    } while(!giocata_valida);
-
-    //giocata valida, può essereinviata al server
-    if (send(sd, giocata, 1, 0) <= 0) error_handler(sd);
-
-    //inserisce la giocata nella propria griglia locale e invia l'esito al server
-    inserisci_O(num_giocata);
-    stampa_griglia();
-    n_giocate++;
-
-    //ha senso controllare l'esito solo se sono state fatte almeno 5 giocate
-    if (*(n_giocate) >= 5) esito = controllo_esito(n_giocate);
-    if (send(sd, &esito, 1, 0) <= 0) error_handler(sd);
-    return esito;
-}
-char ricevi_giocata(unsigned short int *n_giocate, const int sd)
-{
-    char giocata[2] = {'\0', '\0'};
-    char num_giocata = 0;
-    char esito = '0';
-
-    //da per scontato che la giocata sia valida
-    if (recv(sd, giocata, 1, 0) <= 0) error_handler(sd);
-    num_giocata = atoi(giocata);
-
-    inserisci_X(num_giocata);
-    stampa_griglia();
-    n_giocate++;
-
-    esito = controllo_esito(n_giocate);
-    //non invia l'esito perchè se ne occupa chi invia la giocata
-    return esito; 
 }
 char controllo_esito(const unsigned short int *n_giocate)
 {
@@ -227,14 +223,14 @@ char controllo_esito(const unsigned short int *n_giocate)
     // Controlla la diagonale principale
     if (griglia[0][0] != '\0' && griglia[0][0] == griglia[1][1] && griglia[1][1] == griglia[2][2])
     {
-            if(griglia[0][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
-            else { esito = '2'; printf("Vince l'avversario\n"); }
+        if(griglia[0][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+        else { esito = '2'; printf("Vince l'avversario\n"); }
     }
     // Controlla la diagonale secondaria
     if (griglia [0][2] != '\0' && griglia[0][2] == griglia[1][1] && griglia[1][1] == griglia[2][0])
     {
-            if(griglia[0][2] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
-            else { esito = '2'; printf("Vince l'avversario\n"); }
+        if(griglia[0][2] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+        else { esito = '2'; printf("Vince l'avversario\n"); }
     }
     //controlla un eventuale pareggio 
     if (esito == '0' && *n_giocate == 9) { esito = '3'; printf("Pareggio\n"); }
@@ -268,6 +264,7 @@ void inserisci_X(const unsigned short int giocata)
 }
 void stampa_griglia()
 {
+    printf("\n");
     for(int i=0; i<3; i++) printf("|   %c   |", griglia[0][i]);
     printf("\n");
 
@@ -286,7 +283,7 @@ int inizializza_socket()
     if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
         perror("socket creation error"), exit(EXIT_FAILURE);
 
-    int opt = 1;
+    const int opt = 1;
     //opzione reuseaddr per evitare problemi coi riavvii
     if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) 
         perror("set REUSEADDR option error"), exit(EXIT_FAILURE);
@@ -297,6 +294,9 @@ int inizializza_socket()
 
     if (setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &timer, sizeof(timer)) < 0 || setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timer, sizeof(timer)) < 0)
         perror("set socket timer error"), exit(EXIT_FAILURE);
+
+    if (setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt)) < 0)
+        perror("tcp nodelay error"), exit(EXIT_FAILURE);
 
     memset(&ser_add, 0, sizeof(ser_add));
     ser_add.sin_family = AF_INET;
