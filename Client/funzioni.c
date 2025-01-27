@@ -5,9 +5,8 @@ void* thread_fun(void *arg)
     const int sd = *((int *)arg);
     char inbuffer[MAXLETTORE];
     memset(inbuffer, 0, MAXLETTORE);
-    int n_byte = 0;
 
-    //il thread lettore crea un thread scrittore detatched
+    //il thread principale crea un thread scrittore detatched
     pthread_t tid_scrittore;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
@@ -15,9 +14,8 @@ void* thread_fun(void *arg)
     pthread_create(&tid_scrittore, &attr, fun_scrittore, arg);
 
     //il thread scrittore viene ucciso per giocare le partite per evitare conflitti con le send
-    while ((n_byte = recv(sd, inbuffer, MAXLETTORE, 0)) > 0)
+    while (recv(sd, inbuffer, MAXLETTORE, 0) > 0)
     {
-        inbuffer[n_byte] = '\n';
         printf("%s", inbuffer);
         if (strcmp(inbuffer, "Richiesta accettata, inizia la partita!\n") == 0) 
         {
@@ -33,6 +31,7 @@ void* thread_fun(void *arg)
         }
         memset(inbuffer, 0, MAXLETTORE);
     }
+    pthread_kill(tid_scrittore, SIGUSR1);
     close(sd);
     pthread_exit(NULL);
 }
@@ -61,7 +60,6 @@ void* fun_scrittore(void *arg)
 }
 void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo)
 {
-    int n_byte = 0;
     unsigned int round = 0;
     do
     {
@@ -160,14 +158,13 @@ bool rivincita(const int sd, const enum tipo_giocatore tipo)
     memset(buffer, 0, MAXLETTORE);
     char risposta;
     int c;
-    int n_byte = 0;
     bool risposta_valida = false;
 
     if (tipo == PROPRIETARIO) printf("L'avversario sta scegliendo se vuole o meno la rivincita\n");
 
     //riposta dell'avversario
-    if ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
-    buffer[n_byte] = '\n'; printf("%s", buffer);
+    if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler(sd);
+    printf("%s", buffer);
 
     do //verifica che l'input sia valido
     {
@@ -187,14 +184,14 @@ bool rivincita(const int sd, const enum tipo_giocatore tipo)
 
     if (tipo == AVVERSARIO) //all'avversario viene chiesto di attendere il proprietario (se ha scelto la rivincita)
     {
-        if ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
-        buffer[n_byte] = '\n'; printf("%s", buffer);
+        if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler(sd);
+        printf("%s", buffer);
         if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false;
         memset(buffer, 0, MAXLETTORE);
     }
     //riceve e stampa feedback positivo o negativo
-    if ((n_byte = recv(sd, buffer, MAXLETTORE, 0)) <= 0) error_handler(sd);
-    buffer[n_byte] = '\n'; printf("%s", buffer);
+    if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler(sd);
+    printf("%s", buffer);
     if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false;
     else return true;
 }

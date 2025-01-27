@@ -11,8 +11,6 @@ pthread_mutex_t mutex_giocatori = PTHREAD_MUTEX_INITIALIZER;
 
 int main()
 {
-    //NOTA IMPORTANTE: la printf NON funziona senza la presenza di \n
-    //le send del server non terminano mai col carattere \n, se ne occupa il codice client
     int sd = inizializza_server();
     printf("Server running on port 8080\n");
     
