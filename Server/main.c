@@ -40,8 +40,6 @@ int main()
     sigaction(SIGUSR2, sa, NULL);
     sa -> sa_handler = sigalrm_handler;
     sigaction(SIGALRM, sa, NULL);
-    sa -> sa_handler = handler_sveglia;
-    sigaction(SIGFPE, sa, NULL);
 
     free(sa);
     //il server può terminare solo inviandogli esplicitamente un segnale che lo termina

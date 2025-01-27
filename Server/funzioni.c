@@ -17,6 +17,8 @@ struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const
     nuova_testa -> vittorie = 0;
     nuova_testa -> sconfitte = 0;
     nuova_testa -> pareggi = 0;
+    pthread_mutex_init(&(nuova_testa -> stato_mutex), NULL);
+    pthread_cond_init(&(nuova_testa -> stato_cv), NULL);
     nuova_testa -> stato = IN_LOBBY;
     nuova_testa -> tid_giocatore = pthread_self();
     nuova_testa -> sd_giocatore = client_sd;
@@ -152,6 +154,8 @@ struct nodo_partita* crea_partita_in_testa(const char *nome_proprietario, const 
     memset(nuova_testa, 0, sizeof(struct nodo_partita));
     strcpy(nuova_testa -> proprietario, nome_proprietario);
     nuova_testa -> sd_proprietario = sd_proprietario;
+    pthread_mutex_init(&(nuova_testa -> stato_mutex), NULL);
+    pthread_cond_init(&(nuova_testa -> stato_cv), NULL);
     nuova_testa -> stato = NUOVA_CREAZIONE;
     pthread_mutex_lock(&mutex_partite);
     nuova_testa -> next_node = testa_partite;
@@ -215,10 +219,10 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
     {
         strcpy(partita -> avversario, nome_avversario);
         partita -> sd_avversario = sd_avversario;
-        struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
-        pthread_kill(proprietario -> tid_giocatore, SIGFPE);
         if (send(sd_proprietario, "Richiesta accettata, inizia la partita!", 39, 0) <= 0) error_handler(partita -> sd_proprietario);
         if (send(sd_avversario, "Il proprietario ha accettato la richiesta, inizia la partita!", 61, 0) <= 0) error_handler(partita -> sd_proprietario);
+        partita -> stato = IN_CORSO;
+        pthread_cond_signal(&(partita -> stato_cv));
         return true;
     }
     return false;
@@ -238,7 +242,12 @@ void gioca_partita(struct nodo_partita *dati_partita)
     if (send(sd_proprietario, "Partita creata, in attesa di un avversario...", 45, 0) <= 0) error_handler(sd_proprietario);
     segnala_cambiamento_partite();
 
-    pause();
+    pthread_mutex_lock(&(dati_partita -> stato_mutex));
+    while (dati_partita -> stato != IN_CORSO)
+    {
+        pthread_cond_wait(&(dati_partita -> stato_cv), &(dati_partita -> stato_mutex));
+    }
+    pthread_mutex_unlock(&(dati_partita -> stato_mutex));
 
     const int sd_avversario = dati_partita -> sd_avversario;
     char nome_avversario[MAXPLAYER];
@@ -246,7 +255,6 @@ void gioca_partita(struct nodo_partita *dati_partita)
     strcpy(nome_avversario, dati_partita -> avversario);
 
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
-    avversario -> stato = IN_PARTITA;
 
     bool rivincita_accettata = false;
     int round = 0;
@@ -341,7 +349,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
             if (send(sd_proprietario, "Rivincita rifiutata", 19, 0) <= 0) error_handler(sd_proprietario);
             proprietario -> stato = IN_LOBBY;
             avversario -> stato = IN_LOBBY;
-            pthread_kill(avversario -> tid_giocatore, SIGFPE);
+            pthread_cond_signal(&(avversario -> stato_cv));
             rivincita_accettata = false;
         }
         else
@@ -401,8 +409,16 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
             {
                 if (!accetta_partita(partita, sd_giocatore, dati_giocatore -> nome))
                     {if (send(sd_giocatore, "Richiesta di unione rifiutata", 29, 0) <= 0) error_handler(sd_giocatore);}
-                else                     
-                    pause();
+                else
+                {
+                    dati_giocatore -> stato = IN_PARTITA;
+                    pthread_mutex_lock(&(dati_giocatore -> stato_mutex));
+                    while (dati_giocatore -> stato != IN_LOBBY)
+                    {
+                        pthread_cond_wait(&(dati_giocatore -> stato_cv), &(dati_giocatore -> stato_mutex));
+                    }
+                    pthread_mutex_unlock(&(dati_giocatore -> stato_mutex));
+                }
             }
         }
     } while (connesso);
@@ -515,8 +531,6 @@ void* thread_giocatore(void *sd)
     pthread_exit(NULL);
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di signal handling
-
-void handler_sveglia() {}
 
 void sigalrm_handler()
 {

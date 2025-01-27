@@ -51,8 +51,6 @@ void segnala_cambiamento_partite();
 int inizializza_server();
 //gestisce gli errori di rete eliminando il nodo del giocatore che ha causato l'errore, l'eventuale nodo partita e manda SIGALRM al relativo thread
 void error_handler(const int sd_giocatore);
-//sveglia proprietario ed avversario
-void handler_sveglia();
 //funzione che gestisce il ciclo di vita di un giocatore
 void funzione_lobby(struct nodo_giocatore *dati_giocatore);
 //start function del thread che gestisce un client

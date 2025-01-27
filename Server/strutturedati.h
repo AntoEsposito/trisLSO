@@ -25,6 +25,8 @@ struct nodo_giocatore
 {
     char nome[MAXPLAYER];
     enum stato_giocatore stato;
+    pthread_cond_t stato_cv;
+    pthread_mutex_t stato_mutex;
     unsigned int vittorie;
     unsigned int sconfitte;
     unsigned int pareggi;
@@ -39,6 +41,8 @@ struct nodo_partita
     char avversario[MAXPLAYER];
     int sd_avversario; 
     enum stato_partita stato;
+    pthread_cond_t stato_cv;
+    pthread_mutex_t stato_mutex;
     struct nodo_partita *next_node;
 };
 
