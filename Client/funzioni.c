@@ -301,13 +301,13 @@ int inizializza_socket()
     memset(&ser_add, 0, sizeof(ser_add));
     ser_add.sin_family = AF_INET;
     ser_add.sin_port = htons(8080);
-    ser_add.sin_addr.s_addr = inet_addr("server"); //docker associa automaticamente il nome del servizio allo stesso nome host
+    ser_add.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     //non c'è bisogno di inizializzare manualmente la porte client e fare il bind
 
     if (connect(sd, (struct sockaddr *)&ser_add, lenght) < 0)
-        perror("connect error"), exit(EXIT_FAILURE);
-
+        perror("connect error");
+        
     return sd;
 }
 void error_handler(const int sd)
