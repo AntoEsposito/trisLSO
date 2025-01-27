@@ -188,6 +188,7 @@ struct nodo_partita* trova_partita_da_indice(const unsigned int indice)
             pthread_mutex_unlock(&mutex_partite);
             return tmp;
         }
+        tmp = tmp -> next_node;
     }
     pthread_mutex_unlock(&mutex_partite);
     return NULL;
