@@ -1,0 +1,23 @@
+services:
+  server:
+    build:
+      context: ./Server  #Contesto di build per il server (cartella server/)
+    container_name: server
+    networks:
+      - tris_network
+
+  client:
+    build:
+      context: ./Client  #Contesto di build per il client (cartella client/)
+    stdin_open: true     #Mantieni stdin aperto per il client
+    tty: true            #Apre un terminale per il client
+    container_name: client
+    depends_on:
+      - server  #Garantisce che il server sia avviato prima del client
+    network_mode: "container:server"
+
+networks:
+  tris_network: 
+    name: tris_network #Crea una rete comune per client e server
+    driver: bridge #driver più comunemente usato per un network docker
+

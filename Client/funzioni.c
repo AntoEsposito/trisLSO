@@ -277,10 +277,10 @@ void stampa_griglia()
     for(int i=0; i<3; i++) printf("|   %c   |", griglia[2][i]);
     printf("\n");
 }
-int inizializza_socket(const unsigned int porta)
+int inizializza_socket()
 {
     int sd;
-    struct sockaddr_in cl_add, ser_add;
+    struct sockaddr_in ser_add;
     socklen_t lenght = sizeof(struct sockaddr_in);
 
     if ((sd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
@@ -301,19 +301,13 @@ int inizializza_socket(const unsigned int porta)
     memset(&ser_add, 0, sizeof(ser_add));
     ser_add.sin_family = AF_INET;
     ser_add.sin_port = htons(8080);
-    ser_add.sin_addr.s_addr = inet_addr("127.0.0.1"); //server locale
+    ser_add.sin_addr.s_addr = inet_addr("127.0.0.1");
 
-    memset(&cl_add, 0, sizeof(cl_add));
-    cl_add.sin_family = AF_INET;
-    cl_add.sin_port = htons(porta);
-    cl_add.sin_addr.s_addr = INADDR_ANY;
-
-    if (bind(sd, (struct sockaddr *)&cl_add, lenght) < 0)
-        perror("bind error"), exit(EXIT_FAILURE);
+    //non c'è bisogno di inizializzare manualmente la porte client e fare il bind
 
     if (connect(sd, (struct sockaddr *)&ser_add, lenght) < 0)
-        perror("connect error"), exit(EXIT_FAILURE);
-
+        perror("connect error");
+        
     return sd;
 }
 void error_handler(const int sd)
