@@ -512,7 +512,7 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
 void error_handler(const int sd_giocatore)
 {
     struct nodo_giocatore *giocatore = trova_giocatore_da_sd(sd_giocatore);
-    const pthread_t tid = giocatore -> tid_giocatore;
+    if (giocatore != NULL) const pthread_t tid = giocatore -> tid_giocatore;
     struct nodo_partita *partita = trova_partita_da_sd(sd_giocatore);
 
     if (partita != NULL) cancella_partita(partita);
