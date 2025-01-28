@@ -1,7 +1,7 @@
 Major severity
 
 Minor severity
-1-l'interruzione di un client con ctrl+c non funziona (mettere input non bloccanti fread)
+1-l'interruzione di un client con ctrl+c non funziona RISOLTO: rimosso SIGINT_handler
 
 To test
 Disconnessione durante una partita

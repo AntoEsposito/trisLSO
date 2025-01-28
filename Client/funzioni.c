@@ -260,14 +260,28 @@ void inserisci_X(const unsigned short int giocata)
 }
 void stampa_griglia()
 {
+    char c;
     printf("\n");
-    for(int i=0; i<3; i++) printf("|   %c   |", griglia[0][i]);
+    for(int i=0; i<3; i++) 
+    {
+        if (griglia[0][i] == '\0') c = ' ';
+        else c = griglia[0][i];
+        printf("|   %c   |", c);
+    }
     printf("\n");
-
-    for(int i=0; i<3; i++) printf("|   %c   |", griglia[1][i]);
+    for(int i=0; i<3; i++) 
+    {
+        if (griglia[1][i] == '\0') c = ' ';
+        else c = griglia[1][i];
+        printf("|   %c   |", c);
+    }
     printf("\n");
-
-    for(int i=0; i<3; i++) printf("|   %c   |", griglia[2][i]);
+    for(int i=0; i<3; i++) 
+    {
+        if (griglia[2][i] == '\0') c = ' ';
+        else c = griglia[2][i];
+        printf("|   %c   |", c);
+    }
     printf("\n");
 }
 void inizializza_socket()
@@ -312,9 +326,4 @@ void error_handler()
 void SIGUSR1_handler()
 {
     pthread_exit(NULL);
-}
-void SIGINT_handler()
-{
-    close(sd);
-    exit(EXIT_FAILURE);
 }

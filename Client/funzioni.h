@@ -43,7 +43,5 @@ void stampa_griglia();
 void error_handler();
 //uccide il thread quando viene inviato il segnale SIGUSR1
 void SIGUSR1_handler();
-//chiude la socket e uccide il processo
-void SIGINT_handler();
 
 #endif
