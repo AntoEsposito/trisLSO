@@ -1,0 +1,6 @@
+Major severity
+1-un terzo client non viene ascoltato correttamente se c'è una partita in corso
+
+Minor severity
+2-il messaggio "rivincita rifiutata" viene ripetuto
+3-l'interruzione di un client con ctrl+c non cancella le sue partite
