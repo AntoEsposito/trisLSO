@@ -1,5 +1,5 @@
 Major severity
-1-un terzo client non viene ascoltato correttamente se c'è una partita in corso
+1-un terzo client non viene ascoltato correttamente se c'è una partita in corso (ha trovato una partita inserendo id="w")
 
 Minor severity
 2-il messaggio "rivincita rifiutata" viene ripetuto
