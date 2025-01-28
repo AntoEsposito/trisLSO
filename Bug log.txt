@@ -1,5 +1,4 @@
 Major severity
 
 Minor severity
-2-il messaggio "rivincita rifiutata" viene ripetuto
-3-l'interruzione di un client con ctrl+c non cancella le sue partite
+1-l'interruzione di un client con ctrl+c non cancella le sue partite

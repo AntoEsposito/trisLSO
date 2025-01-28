@@ -246,7 +246,17 @@ void gioca_partita(struct nodo_partita *dati_partita)
     pthread_mutex_lock(&(dati_partita -> stato_mutex));
     while (dati_partita -> stato != IN_CORSO)
     {
-        pthread_cond_wait(&(dati_partita -> stato_cv), &(dati_partita -> stato_mutex));
+        struct timespec tempo_attesa;
+        clock_gettime(CLOCK_REALTIME, &tempo_attesa);
+        tempo_attesa.tv_sec += 5;
+        tempo_attesa.tv_nsec = 0;
+        int result = pthread_cond_timedwait(&(dati_partita -> stato_cv), &(dati_partita -> stato_mutex), &tempo_attesa);
+        printf("%d\n", result);
+        printf("%s\n", strerror(110));
+        if (result == 110) 
+        { 
+            if (send(sd_proprietario, "In attesa...\n", 13, 0) <= 0) error_handler(sd_proprietario);
+        }
     }
     pthread_mutex_unlock(&(dati_partita -> stato_mutex));
 
@@ -338,8 +348,8 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
         if(risposta != 'S') //si torna alla lobby
         {
-            if (send(sd_avversario, "Rivincita rifiutata dal proprietario\n", 38, 0) <= 0) error_handler(sd_avversario);
-            if (send(sd_proprietario, "Ritorno in lobby\n", 18, 0) <= 0) error_handler(sd_proprietario);
+            if (send(sd_avversario, "Rivincita rifiutata dal proprietario\n", 37, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_proprietario, "Ritorno in lobby\n", 17, 0) <= 0) error_handler(sd_proprietario);
             proprietario -> stato = IN_LOBBY;
             avversario -> stato = IN_LOBBY;
             pthread_cond_signal(&(avversario -> stato_cv));
@@ -380,7 +390,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
         do //recv può essere interrota da un segnale e restituire EINTR come errore
         { //questo ciclo gestisce l'errore
             if (errno == EINTR) errno = 0;
-            if(recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0 && errno != EINTR) error_handler(sd_giocatore);
+            if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0 && errno != EINTR) error_handler(sd_giocatore);
         } while (errno == EINTR);
         
 
@@ -442,6 +452,7 @@ void cancella_partita(struct nodo_partita *nodo)
         free(nodo);
     }
     pthread_mutex_unlock(&mutex_partite);
+    segnala_cambiamento_partite();
 }
 void segnala_cambiamento_partite()
 { 
@@ -511,8 +522,10 @@ int inizializza_server() //crea la socket, si mette in ascolto e restituisce il 
 }
 void error_handler(const int sd_giocatore)
 {
+    printf("error\n");
+    pthread_t tid = 0;
     struct nodo_giocatore *giocatore = trova_giocatore_da_sd(sd_giocatore);
-    if (giocatore != NULL) const pthread_t tid = giocatore -> tid_giocatore;
+    if (giocatore != NULL) tid = giocatore -> tid_giocatore;
     struct nodo_partita *partita = trova_partita_da_sd(sd_giocatore);
 
     if (partita != NULL) cancella_partita(partita);
