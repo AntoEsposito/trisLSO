@@ -398,7 +398,9 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
         }
         else 
         {
-            struct nodo_partita *partita = trova_partita_da_indice(atoi(inbuffer));
+            int indice = atoi(inbuffer);
+            struct nodo_partita *partita = NULL;
+            if (indice != 0) partita = (trova_partita_da_indice(indice));
             if (partita == NULL)
             {
                 if (send(sd_giocatore, "Partita non trovata\n", 20, 0) <= 0) error_handler(sd_giocatore);
