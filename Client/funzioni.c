@@ -192,8 +192,9 @@ bool rivincita(const int sd, const enum tipo_giocatore tipo)
     //riceve e stampa feedback positivo o negativo
     if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler(sd);
     printf("%s", buffer);
-    if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false;
-    else return true;
+    if (tipo == AVVERSARIO) { if (strcmp(buffer, "Rivincita rifiutata dal proprietario\n") == 0) return false; }
+    else if (strcmp(buffer, "Ritorno in lobby\n") == 0) return false;
+    return true;
 }
 char controllo_esito(const unsigned short int *n_giocate)
 {

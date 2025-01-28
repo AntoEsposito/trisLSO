@@ -338,8 +338,8 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
         if(risposta != 'S') //si torna alla lobby
         {
-            if (send(sd_avversario, "Rivincita rifiutata\n", 20, 0) <= 0) error_handler(sd_avversario);
-            if (send(sd_proprietario, "Rivincita rifiutata\n", 20, 0) <= 0) error_handler(sd_proprietario);
+            if (send(sd_avversario, "Rivincita rifiutata dal proprietario\n", 38, 0) <= 0) error_handler(sd_avversario);
+            if (send(sd_proprietario, "Ritorno in lobby\n", 18, 0) <= 0) error_handler(sd_proprietario);
             proprietario -> stato = IN_LOBBY;
             avversario -> stato = IN_LOBBY;
             pthread_cond_signal(&(avversario -> stato_cv));
