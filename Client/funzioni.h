@@ -16,19 +16,19 @@
 #include "strutturedati.h"
 
 //si connette alla socket del server, restituisce il sd del client
-int inizializza_socket();
+void inizializza_socket();
 //funzione che legge dalla socket
-void* thread_fun(void *arg);
+void* thread_fun();
 //funzione che scrive sulla socket
-void* fun_scrittore(void *arg);
+void* fun_scrittore();
 //gestisce la richiesta di rivincita, restituisce true se la rivincita è stata accettata
-bool rivincita(const int sd, const enum tipo_giocatore tipo);
+bool rivincita(const enum tipo_giocatore tipo);
 //funzione che gestisce la partita tra 2 giocatori, incluse eventuali rivincite
-void gioca_partite(char *inbuffer, const int sd, const enum tipo_giocatore tipo);
+void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo);
 //aggiorna la griglia di gioco e il numero giocate, invia la giocata e l'esito della partita al server, restituisce l'esito
-char invia_giocata(unsigned short int *n_giocate, const int sd);
+char invia_giocata(unsigned short int *n_giocate);
 //riceve la giocata dal server, aggiorna la griglia, restituisce l'esito
-char ricevi_giocata(unsigned short int *n_giocate, const int sd);
+char ricevi_giocata(unsigned short int *n_giocate);
 //controlla chi ha vinto e restituisce l'esito
 char controllo_esito(const unsigned short int *n_giocate);
 //controlla se il giocatore ha inserito un input valido
@@ -40,8 +40,10 @@ void inserisci_X(const unsigned short int giocata);
 //stampa la griglia attuale
 void stampa_griglia();
 //manda un messaggio di errore e chiude il processo
-void error_handler(const int sd);
+void error_handler();
 //uccide il thread quando viene inviato il segnale SIGUSR1
 void SIGUSR1_handler();
+//chiude la socket e uccide il processo
+void SIGINT_handler();
 
 #endif

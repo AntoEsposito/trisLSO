@@ -15,5 +15,6 @@ enum tipo_giocatore
 };
 
 extern char griglia[3][3];
+extern int sd;
 
 #endif

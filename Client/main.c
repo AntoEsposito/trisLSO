@@ -1,15 +1,25 @@
 #include "funzioni.h"
 
 char griglia[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
+int sd = 0;
 
 int main()
 {
-    signal(SIGUSR1, SIGUSR1_handler);
+    struct sigaction *sa = (struct sigaction *) malloc(sizeof(struct sigaction));
+    memset(sa, 0, sizeof(struct sigaction));
+    sa -> sa_flags = SA_RESTART;
+
+    sa -> sa_handler = SIGUSR1_handler; 
+    sigaction(SIGUSR1, sa, NULL);
+    sa -> sa_handler = SIGINT_handler;
+    sigaction(SIGINT, sa, NULL);
+    free(sa);
+
     pthread_t tid;
 
-    int sd = inizializza_socket();
+    inizializza_socket();
 
-    if (pthread_create(&tid, NULL, thread_fun, &sd) < 0)
+    if (pthread_create(&tid, NULL, thread_fun, NULL) < 0)
         perror("thread creation error"), exit(EXIT_FAILURE);
 
     pthread_join(tid, NULL);
