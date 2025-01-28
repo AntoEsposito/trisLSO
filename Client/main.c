@@ -14,9 +14,7 @@ int main()
         perror("thread creation error"), exit(EXIT_FAILURE);
 
     pthread_join(tid, NULL);
-
-    if (errno == ETIMEDOUT) printf("Disconnesso per inattività\n");
-    else if (errno == ECONNRESET) printf("Si è verificato un errore di rete\n");
+    if (errno != 0) perror("Si è verificato un errore");
     else printf("Uscita\n");
     return 0;
 }
