@@ -316,7 +316,9 @@ void gioca_partita(struct nodo_partita *dati_partita)
                 if (send(sd_avversario, &giocata, 1, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
             }
         } while (esito_proprietario == '0' && esito_avversario == '0');
-
+        
+        printf("esito p:%c\n", esito_proprietario);
+        printf("esito a:%c\n", esito_avversario);
         //si aggiornano i contatori dei giocatori
         switch (esito_proprietario)
         {

@@ -2,9 +2,9 @@ Major severity
 1-considera sconfitta le vittorie dell'avversario nei round dispari
 2-conteggia come pareggio ogni vittoria dell'avversario
 Minor severity
-2-l'interruzione di un proprietario (ctrl+c) durante attesa unione non cancella giocatore e partita
-3-l'interruzione di un avversario (ctrl+c) durante una partita non cancella giocatore e partita
-4-conflitto se un secondo giocatore chiede di unirsi ad un proprietario prima della risposta al primo
+3-l'interruzione di un proprietario (ctrl+c) durante attesa unione non cancella giocatore e partita
+4-l'interruzione di un avversario (ctrl+c) durante una partita non cancella giocatore e partita
+5-conflitto se un secondo giocatore chiede di unirsi ad un proprietario prima della risposta al primo
 
 To test
 Disconnessione durante una partita
