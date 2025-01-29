@@ -1,10 +1,9 @@
 Major severity
-1-CORRETTO considera sconfitta la vittoria dell'avversario nel round 1 se la sequenza mosse è 1,2,3,5,4,8
-2-CORRETTO conteggia come pareggio ogni vittoria dell'avversario
+1-buffer overflow se si crea più di una partita
+
 Minor severity
-3-CORRETTO l'interruzione di un proprietario (ctrl+c) durante attesa unione non cancella giocatore e partita
-4-CORRETTO l'interruzione di un avversario (ctrl+c) durante una partita non cancella giocatore e partita
-5-conflitto se un secondo giocatore chiede di unirsi ad un proprietario prima della risposta al primo
+2-l'interruzione di un giocatore (ctrl+c) durante una partita deve riportare l'avversario in lobby
+3-conflitto se un secondo giocatore chiede di unirsi ad un proprietario prima della risposta al primo
 
 To test
 Disconnessione durante una partita
