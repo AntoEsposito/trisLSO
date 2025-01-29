@@ -215,16 +215,16 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
 
     char risposta = '\0'; //si occupa il codice client di verificare che l'input sia o "s" o "n"
 
-    if(send(sd_avversario, "In attesa del proprietario...\n", 31, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
+    if(send(sd_avversario, "In attesa del proprietario...\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
 
     if(send(sd_proprietario, buffer, strlen(buffer), MSG_NOSIGNAL) < 0) 
     {
-        error_handler(partita -> sd_proprietario);
+        error_handler(sd_proprietario);
         return false;
     }
     if(recv(sd_proprietario, &risposta, 1, 0) <= 0)
     {
-        error_handler(partita -> sd_proprietario);
+        error_handler(sd_proprietario);
         return false;
     }
 
@@ -233,11 +233,15 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
     {
         strcpy(partita -> avversario, nome_avversario);
         partita -> sd_avversario = sd_avversario;
-        if (send(sd_proprietario, "Richiesta accettata, inizia la partita!\n", 41, MSG_NOSIGNAL) < 0) error_handler(partita -> sd_proprietario);
-        if (send(sd_avversario, "Il proprietario ha accettato la richiesta, inizia la partita!\n", 62, MSG_NOSIGNAL) < 0) error_handler(partita -> sd_proprietario);
+        if (send(sd_proprietario, "Richiesta accettata, inizia la partita!\n", 40, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+        if (send(sd_avversario, "Il proprietario ha accettato la richiesta, inizia la partita!\n", 62, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
         partita -> stato = IN_CORSO;
         pthread_cond_signal(&(partita -> stato_cv));
         return true;
+    }
+    else
+    {
+        if (send(sd_proprietario, "Richiesta rifiutata, in attesa di un avversario...\n", 51, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
     }
     return false;
 }
