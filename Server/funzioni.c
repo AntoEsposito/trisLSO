@@ -249,12 +249,13 @@ void gioca_partita(struct nodo_partita *dati_partita)
         //controllo periodico in caso il proprietario si disconnetta mentre la partita è in attesa
         struct timespec tempo_attesa;
         clock_gettime(CLOCK_REALTIME, &tempo_attesa);
-        tempo_attesa.tv_sec += 5;
+        tempo_attesa.tv_sec += 3;
         tempo_attesa.tv_nsec = 0;
         int result = pthread_cond_timedwait(&(dati_partita -> stato_cv), &(dati_partita -> stato_mutex), &tempo_attesa);
         if (result == ETIMEDOUT) 
         { 
-            if (send(sd_proprietario, "In attesa...\n", 13, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+            //messaggio nullo che controlla se la socket è ancora attiva
+            if (send(sd_proprietario, NULL, 0, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         }
     }
     pthread_mutex_unlock(&(dati_partita -> stato_mutex));
@@ -265,9 +266,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
     strcpy(nome_avversario, dati_partita -> avversario);
 
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
-
-    bool rivincita_accettata = false;
-    int round = 0;
+    unsigned int round = 0;
 
     do
     {
@@ -332,35 +331,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
         segnala_cambiamento_partite();
 
         //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
-        char risposta = '\0';
-
-        if (send(sd_avversario, "Rivincita? [s/n]\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-        if (recv(sd_avversario, &risposta, 1, 0) <= 0) error_handler(sd_avversario);
-        
-        if (risposta != 'S') {if (send(sd_proprietario, "Rivincita rifiutata dall'avversario\n", 36, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);}
-        else 
-        {
-            if (send(sd_avversario, "In attesa del proprietario...\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-            if (send(sd_proprietario, "L'avversario vuole la rivincita, accetti? [s/n]\n", 48, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
-            if (recv(sd_proprietario, &risposta, 1, 0) <= 0) error_handler(sd_proprietario);
-        }
-
-        if(risposta != 'S') //si torna alla lobby
-        {
-            if (send(sd_avversario, "Rivincita rifiutata dal proprietario\n", 37, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-            if (send(sd_proprietario, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
-            proprietario -> stato = IN_LOBBY;
-            avversario -> stato = IN_LOBBY;
-            pthread_cond_signal(&(avversario -> stato_cv));
-            rivincita_accettata = false;
-        }
-        else
-        {
-            if (send(sd_avversario, "Rivincita accettata, pronti per il prossimo round\n", 50, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-            if (send(sd_proprietario, "Rivincita accettata, pronti per il prossimo round\n", 50, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
-            rivincita_accettata = true;
-        }
-    } while (rivincita_accettata);
+    } while (rivincita(sd_proprietario, sd_avversario));
 }
 void funzione_lobby(struct nodo_giocatore *dati_giocatore)
 {
@@ -427,11 +398,12 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
                         //controllo periodico in caso il giocatore si disconnetta mentre è in partita
                         struct timespec tempo_attesa;
                         clock_gettime(CLOCK_REALTIME, &tempo_attesa);
-                        tempo_attesa.tv_sec += 5;
+                        tempo_attesa.tv_sec += 3;
                         tempo_attesa.tv_nsec = 0;
                         int result = pthread_cond_timedwait(&(dati_giocatore -> stato_cv), &(dati_giocatore -> stato_mutex), &tempo_attesa);
                         if (result == ETIMEDOUT) 
                         { 
+                            //messaggio nullo che controlla se la socket è ancora attiva
                             if (send(sd_giocatore, NULL, 0, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
                         }
                     }
@@ -440,6 +412,43 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
             }
         }
     } while (connesso);
+}
+bool rivincita(const int sd_proprietario, const int sd_avversario)
+{
+    struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
+    struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
+    char risposta_avversario = '\0';
+    char risposta_proprietario = '\0';
+
+    if (send(sd_avversario, "Rivincita? [s/n]\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
+    if (recv(sd_avversario, &risposta_avversario, 1, 0) <= 0) error_handler(sd_avversario);
+    
+    if (risposta_avversario == 'N') {if (send(sd_proprietario, "Rivincita rifiutata dall'avversario, ritorno in lobby\n", 54, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);}
+    else 
+    {
+        if (send(sd_avversario, "In attesa del proprietario...\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
+        if (send(sd_proprietario, "L'avversario vuole la rivincita, accetti? [s/n]\n", 48, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+        if (recv(sd_proprietario, &risposta_proprietario, 1, 0) <= 0) error_handler(sd_proprietario);
+    }
+    if (risposta_proprietario != 'S') //si torna alla lobby
+    {
+        if (risposta_proprietario == 'N')
+        {
+            if (send(sd_avversario, "Rivincita rifiutata dal proprietario\n", 37, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
+            if (send(sd_proprietario, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+        }
+        proprietario -> stato = IN_LOBBY;
+        avversario -> stato = IN_LOBBY;
+        pthread_cond_signal(&(avversario -> stato_cv));
+        return false;
+    }
+    if (risposta_avversario == 'S' && risposta_proprietario == 'S')
+    {
+        if (send(sd_avversario, "Rivincita accettata, pronti per il prossimo round\n", 50, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
+        if (send(sd_proprietario, "Rivincita accettata, pronti per il prossimo round\n", 50, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+        return true;
+    }
+    return false; //questo return non viene mai raggiunto
 }
 void cancella_partita(struct nodo_partita *nodo)
 {

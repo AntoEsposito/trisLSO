@@ -44,7 +44,15 @@ void* fun_scrittore()
         //strnlen è più sicura di strlen per stringhe che potrebbero non terminare con \0 come in questo caso
         if (fgets(outbuffer, MAXSCRITTORE, stdin) != NULL && outbuffer[strnlen(outbuffer, MAXSCRITTORE)-1] == '\n') //massimo 15 caratteri nel buffer escluso \n
         {
-            if (send(sd, outbuffer, strlen(outbuffer)-1, 0) <= 0) break;
+            if (outbuffer[0] != '\n')
+            {
+                if (send(sd, outbuffer, strlen(outbuffer)-1, 0) <= 0) break;
+            }
+            else 
+            {
+                outbuffer[0] = '\0'; //evita che il giocatore invii un input vuoto
+                printf("Inserisci un input valido\n");
+            }
         }
         else //sono stati scritti più di 15 caratteri
         {
@@ -113,9 +121,12 @@ char invia_giocata(unsigned short int *n_giocate)
     {
         printf("Scrivi un numero da 1 a 9 per indicare dove posizionare la O\n");
         giocata[0] = getchar();
-        num_giocata = atoi(giocata);
-        giocata_valida = controllo_giocata(num_giocata);
-        while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
+        if (giocata [0] != '\n') //controllo per un invio nullo
+        {
+            num_giocata = atoi(giocata);
+            giocata_valida = controllo_giocata(num_giocata);
+            while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
+        }
         if (!giocata_valida) printf("Giocata non valida\n"); 
     } while(!giocata_valida);
 
@@ -160,28 +171,35 @@ bool rivincita(const enum tipo_giocatore tipo)
 
     if (tipo == PROPRIETARIO) printf("L'avversario sta scegliendo se vuole o meno la rivincita\n");
 
-    //riposta dell'avversario
+    //Avversario riceve richiesta di rivincita, proprietario riceve risposta dell'avversario
     if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler();
     printf("%s", buffer);
 
     do //verifica che l'input sia valido
     {
-        if (strcmp(buffer, "Rivincita rifiutata dall'avversario\n") == 0) break; //questo messaggio può riceverlo solo il proprietario
+        if (strcmp(buffer, "Rivincita rifiutata dall'avversario, ritorno in lobby\n") == 0) return false; //questo messaggio può riceverlo solo il proprietario
         else memset(buffer, 0, MAXLETTORE);
 
         risposta = getchar();
-        while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
-        risposta = toupper(risposta);
-        if (risposta != 'S' && risposta != 'N') printf("Scrivi una risposta valida\n"); 
-        else risposta_valida = true;
+        if (risposta != '\n') //il giocatore ha premuto invio senza dare input
+        {
+            while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
+            risposta = toupper(risposta);
+            if (risposta != 'S' && risposta != 'N') printf("Scrivi una risposta valida\n"); 
+            else risposta_valida = true;
+        }
     } while(!risposta_valida);
 
     //input corretto, lo invia al server (nel caso del proprietario potrebbe non essercene bisogno)
-    if (risposta_valida) {if (send(sd, &risposta, 1, 0 ) <= 0) error_handler();}
-    else return false;
+    if (send(sd, &risposta, 1, 0 ) <= 0) error_handler();
 
     if (tipo == AVVERSARIO) //all'avversario viene chiesto di attendere il proprietario (se ha scelto la rivincita)
     {
+        if (risposta == 'N')
+        {
+            printf("Rivincita rifiutata\n");
+            return false;
+        }
         if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler();
         printf("%s", buffer);
         if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false;

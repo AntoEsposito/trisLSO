@@ -43,6 +43,8 @@ struct nodo_partita* trova_partita_da_indice(const unsigned int indice);
 bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
 //funzione che gestisce la partita tra 2 giocatori
 void gioca_partita(struct nodo_partita *dati_partita);
+//restituisce true se entrambi i giocatori decidono di giocare una rivincita
+bool rivincita(const int sd_proprietario, const int sd_avversario);
 //elimina un nodo partita dalla lista
 void cancella_partita(struct nodo_partita *nodo);
 //invia SIGUSR1 a tutti i thread con giocatori in lobby
