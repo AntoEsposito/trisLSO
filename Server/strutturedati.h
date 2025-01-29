@@ -41,6 +41,7 @@ struct nodo_partita
     char avversario[MAXPLAYER];
     int sd_avversario; 
     enum stato_partita stato;
+    bool richiesta_unione;
     pthread_cond_t stato_cv;
     pthread_mutex_t stato_mutex;
     struct nodo_partita *next_node;

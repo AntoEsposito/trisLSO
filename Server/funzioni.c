@@ -163,10 +163,14 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
             if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0 && errno != EINTR) error_handler(sd_giocatore);
         } while (errno == EINTR);
         
-
-        inbuffer[0] = toupper(inbuffer[0]);
-        if (strcmp(inbuffer, "Esci") == 0) connesso = false;
-        else if (strcmp(inbuffer, "Crea") == 0) 
+        int i = 0;
+        while (inbuffer[i] != '\0') //case insensitive
+        {
+            inbuffer[i] = toupper(inbuffer[i]);
+            i++;
+        }
+        if (strcmp(inbuffer, "ESCI") == 0) connesso = false;
+        else if (strcmp(inbuffer, "CREA") == 0) 
         {
             struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
             if (nodo_partita != NULL)
@@ -189,7 +193,10 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
             else
             {
                 if (!accetta_partita(partita, sd_giocatore, dati_giocatore -> nome))
-                    {if (send(sd_giocatore, "Richiesta di unione rifiutata\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);}
+                {
+                    if (partita -> richiesta_unione == false)
+                        if (send(sd_giocatore, "Richiesta di unione rifiutata\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
+                }
                 else
                 {
                     dati_giocatore -> stato = IN_PARTITA;
@@ -208,6 +215,11 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
 
 bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario)
 {
+    if (partita -> richiesta_unione == true)
+    {
+        if (send(sd_avversario, "Un altro giocatore ha già richiesto di unirsi a questa partita\n", 64, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
+        return false;
+    }
     const int sd_proprietario = partita -> sd_proprietario;
     char buffer[MAXOUT];
     memset(buffer, 0, MAXOUT);
@@ -216,6 +228,7 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
     char risposta = '\0'; //si occupa il codice client di verificare che l'input sia o "s" o "n"
 
     if(send(sd_avversario, "In attesa del proprietario...\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
+    partita -> richiesta_unione = true;
 
     if(send(sd_proprietario, buffer, strlen(buffer), MSG_NOSIGNAL) < 0) 
     {
@@ -235,13 +248,15 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
         partita -> sd_avversario = sd_avversario;
         if (send(sd_proprietario, "Richiesta accettata, inizia la partita!\n", 40, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         if (send(sd_avversario, "Il proprietario ha accettato la richiesta, inizia la partita!\n", 62, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-        partita -> stato = IN_CORSO;
-        pthread_cond_signal(&(partita -> stato_cv));
+        if (partita != NULL) partita -> stato = IN_CORSO;
+        if (partita != NULL) partita -> richiesta_unione = false;
+        if (partita != NULL) pthread_cond_signal(&(partita -> stato_cv));
         return true;
     }
     else
     {
         if (send(sd_proprietario, "Richiesta rifiutata, in attesa di un avversario...\n", 51, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+        partita -> richiesta_unione = false;
     }
     return false;
 }
@@ -261,7 +276,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
         //controllo periodico in caso il proprietario si disconnetta mentre la partita è in attesa
         struct timespec tempo_attesa;
         clock_gettime(CLOCK_REALTIME, &tempo_attesa);
-        tempo_attesa.tv_sec += 2;
+        tempo_attesa.tv_sec += 1;
         tempo_attesa.tv_nsec = 0;
         int result = pthread_cond_timedwait(&(dati_partita -> stato_cv), &(dati_partita -> stato_mutex), &tempo_attesa);
         if (result == ETIMEDOUT) 
@@ -475,6 +490,7 @@ struct nodo_partita* crea_partita_in_testa(const char *nome_proprietario, const 
     pthread_mutex_init(&(nuova_testa -> stato_mutex), NULL);
     pthread_cond_init(&(nuova_testa -> stato_cv), NULL);
     nuova_testa -> stato = NUOVA_CREAZIONE;
+    nuova_testa -> richiesta_unione = false;
     pthread_mutex_lock(&mutex_partite);
     nuova_testa -> next_node = testa_partite;
     if(testa_partite != NULL && testa_partite -> stato == NUOVA_CREAZIONE) testa_partite -> stato = IN_ATTESA;

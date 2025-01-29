@@ -12,6 +12,7 @@ void* thread_fun()
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_create(&tid_scrittore, &attr, fun_scrittore, NULL);
 
+    printf("TRIS-LSO\n");
     //il thread scrittore viene ucciso per giocare le partite per evitare conflitti con le send
     while (recv(sd, inbuffer, MAXLETTORE, 0) > 0)
     {

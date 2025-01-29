@@ -2,7 +2,6 @@ Major severity
 
 Minor severity
 2-l'interruzione di un giocatore (ctrl+c) durante una partita deve riportare l'avversario in lobby
-3-conflitto se un secondo giocatore chiede di unirsi ad un proprietario prima della risposta al primo
 
 To test
 Disconnessione durante una partita

@@ -4,7 +4,7 @@
 #include <pthread.h>
 
 //dimensioni buffer per leggere e scrivere sulla socket
-#define MAXLETTORE 256
+#define MAXLETTORE 512
 #define MAXSCRITTORE 16
 
 //serve alla funzione partita per gestire gli input
