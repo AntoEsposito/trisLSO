@@ -1,5 +1,5 @@
 Major severity
-1-considera sconfitta le vittorie dell'avversario nei round dispari
+1-considera sconfitta la vittoria dell'avversario nel round 1 se la sequenza mosse è 1,2,3,5,4,8
 2-conteggia come pareggio ogni vittoria dell'avversario
 Minor severity
 3-l'interruzione di un proprietario (ctrl+c) durante attesa unione non cancella giocatore e partita

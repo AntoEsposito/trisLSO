@@ -236,14 +236,7 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
 }
 void gioca_partita(struct nodo_partita *dati_partita)
 {
-    char buffer[MAXPARTITA];
-    memset(buffer, 0, MAXPARTITA);
-
     const int sd_proprietario = dati_partita -> sd_proprietario;
-    char nome_proprietario[MAXPLAYER];
-    memset(nome_proprietario, 0, MAXPLAYER);
-    strcpy(nome_proprietario, dati_partita -> proprietario);
-
     struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
     if (send(sd_proprietario, "Partita creata, in attesa di un avversario...\n", 46, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
@@ -267,18 +260,15 @@ void gioca_partita(struct nodo_partita *dati_partita)
     pthread_mutex_unlock(&(dati_partita -> stato_mutex));
 
     const int sd_avversario = dati_partita -> sd_avversario;
-    char nome_avversario[MAXPLAYER];
-    memset(nome_avversario, 0, MAXPLAYER);
-    strcpy(nome_avversario, dati_partita -> avversario);
-
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
+
     unsigned int round = 0;
 
     do
     {
         dati_partita -> stato = IN_CORSO;
-        segnala_cambiamento_partite();
         round++;
+        if (round > 1) segnala_cambiamento_partite();
 
         char giocata = '\0';
         char esito_proprietario = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
