@@ -1,5 +1,4 @@
 Major severity
-1-buffer overflow se si crea più di una partita
 
 Minor severity
 2-l'interruzione di un giocatore (ctrl+c) durante una partita deve riportare l'avversario in lobby

@@ -569,6 +569,7 @@ void invia_partite()
     {
         while (tmp != NULL)
         {
+            memset(outbuffer, 0, MAXOUT);
             memset(stato_partita, 0, 28);
             switch (tmp -> stato)
             {
