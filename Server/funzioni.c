@@ -370,8 +370,11 @@ bool rivincita(const int sd_proprietario, const int sd_avversario)
             if (send(sd_proprietario, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         }
         proprietario -> stato = IN_LOBBY;
-        avversario -> stato = IN_LOBBY;
-        pthread_cond_signal(&(avversario -> stato_cv));
+        if (avversario != NULL)
+        {
+            avversario -> stato = IN_LOBBY;
+            pthread_cond_signal(&(avversario -> stato_cv));
+        }
         return false;
     }
     if (risposta_avversario == 'S' && risposta_proprietario == 'S')
@@ -518,19 +521,23 @@ void cancella_partita(struct nodo_partita *nodo)
     {
         testa_partite = testa_partite -> next_node;
         free(nodo);
+        segnala_cambiamento_partite();
     }
     else if (nodo != NULL)
     {
         struct nodo_partita *tmp = testa_partite;
-        while(tmp -> next_node != nodo && tmp != NULL)
+        while(tmp != NULL && tmp -> next_node != nodo)
         {
             tmp = tmp -> next_node;
         }
-        tmp -> next_node = nodo -> next_node;
-        free(nodo);
+        if (tmp != NULL)
+        {
+            tmp -> next_node = nodo -> next_node;
+            free(nodo);
+            segnala_cambiamento_partite();
+        }
     }
     pthread_mutex_unlock(&mutex_partite);
-    segnala_cambiamento_partite();
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di signal handling
