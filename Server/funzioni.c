@@ -9,6 +9,7 @@ struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const
     {
         send(client_sd, "errore\n", 7, MSG_NOSIGNAL); 
         close(client_sd);
+        printf("errore creazione giocatore\n");
         pthread_exit(NULL);
     }
 
@@ -75,6 +76,7 @@ char* verifica_giocatore(const int client_sd)
     {
         send(client_sd, "errore\n", 7, MSG_NOSIGNAL);
         close(client_sd);
+        printf("errore verifica\n");
         pthread_exit(NULL);
     }
 
@@ -82,6 +84,7 @@ char* verifica_giocatore(const int client_sd)
     {
         close(client_sd);
         free(nome_giocatore);
+        printf("errore verifica\n");
         pthread_exit(NULL);
     }
 
@@ -96,6 +99,7 @@ char* verifica_giocatore(const int client_sd)
         {
             close(client_sd);
             free(nome_giocatore);
+            printf("errore verifica\n");
             pthread_exit(NULL);
         }
 
@@ -104,6 +108,7 @@ char* verifica_giocatore(const int client_sd)
         {
             close(client_sd);
             free(nome_giocatore);
+            printf("errore verifica\n");
             pthread_exit(NULL);
         }
     } while (!nome_trovato);
@@ -112,6 +117,7 @@ char* verifica_giocatore(const int client_sd)
     {
         close(client_sd);
         free(nome_giocatore);
+        printf("errore verifica\n");
         pthread_exit(NULL);
     }
 
@@ -373,6 +379,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
             {
                 gioca_partita(nodo_partita);
                 cancella_partita(nodo_partita);
+                printf("partita cancellata\n"); 
             }
             else if (send(sd_giocatore, "Impossibile creare partita, attendi qualche minuto\n", 51, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
         }
@@ -544,7 +551,7 @@ void error_handler(const int sd_giocatore)
     if (giocatore != NULL) tid = giocatore -> tid_giocatore;
     struct nodo_partita *partita = trova_partita_da_sd(sd_giocatore);
 
-    if (partita != NULL) cancella_partita(partita);
+    if (partita != NULL) {cancella_partita(partita); printf("errore: partita cancellata\n");}
     if (giocatore != NULL) pthread_kill(tid, SIGALRM);
 }
 void* thread_giocatore(void *sd)
@@ -555,8 +562,9 @@ void* thread_giocatore(void *sd)
 
     funzione_lobby(giocatore);
 
-    close(sd_giocatore);    
+    close(sd_giocatore);   
     cancella_giocatore(giocatore);
+    printf("giocatore cancellato\n"); 
     pthread_exit(NULL);
 }
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di signal handling
@@ -566,6 +574,7 @@ void sigalrm_handler()
     struct nodo_giocatore *giocatore = trova_giocatore_da_tid(pthread_self());
     close(giocatore -> sd_giocatore);
     cancella_giocatore(giocatore);
+    printf("errore: giocatore cancellato\n"); 
     pthread_exit(NULL);
 }
 void handler_nuovo_giocatore()

@@ -1,7 +1,10 @@
 Major severity
-
+1-considera sconfitta le vittorie dell'avversario nei round dispari
+2-conteggia come pareggio ogni vittoria dell'avversario
 Minor severity
-1-l'interruzione di un client con ctrl+c non funziona RISOLTO: rimosso SIGINT_handler
+2-l'interruzione di un proprietario (ctrl+c) durante attesa unione non cancella giocatore e partita
+3-l'interruzione di un avversario (ctrl+c) durante una partita non cancella giocatore e partita
+4-conflitto se un secondo giocatore chiede di unirsi ad un proprietario prima della risposta al primo
 
 To test
 Disconnessione durante una partita
