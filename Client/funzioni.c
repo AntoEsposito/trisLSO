@@ -44,10 +44,7 @@ void* fun_scrittore()
         //strnlen è più sicura di strlen per stringhe che potrebbero non terminare con \0 come in questo caso
         if (fgets(outbuffer, MAXSCRITTORE, stdin) != NULL && outbuffer[strnlen(outbuffer, MAXSCRITTORE)-1] == '\n') //massimo 15 caratteri nel buffer escluso \n
         {
-            if (outbuffer[0] != '\n')
-            {
-                if (send(sd, outbuffer, strlen(outbuffer)-1, 0) <= 0) break;
-            }
+            if (outbuffer[0] != '\n') send(sd, outbuffer, strlen(outbuffer)-1, 0);
             else 
             {
                 outbuffer[0] = '\0'; //evita che il giocatore invii un input vuoto
@@ -131,7 +128,7 @@ char invia_giocata(unsigned short int *n_giocate)
     } while(!giocata_valida);
 
     //giocata valida, può essere inviata al server
-    if (send(sd, giocata, 1, 0) <= 0) error_handler();
+    send(sd, giocata, 1, 0);
 
     //inserisce la giocata nella propria griglia locale e invia l'esito al server
     inserisci_O(num_giocata);
@@ -140,7 +137,7 @@ char invia_giocata(unsigned short int *n_giocate)
 
     //ha senso controllare l'esito solo se sono state fatte almeno 5 giocate
     if (*(n_giocate) >= 5) esito = controllo_esito(n_giocate);
-    if (send(sd, &esito, 1, 0) <= 0) error_handler();
+    send(sd, &esito, 1, 0);
     return esito;
 }
 char ricevi_giocata(unsigned short int *n_giocate)
@@ -191,7 +188,7 @@ bool rivincita(const enum tipo_giocatore tipo)
     } while(!risposta_valida);
 
     //input corretto, lo invia al server (nel caso del proprietario potrebbe non essercene bisogno)
-    if (send(sd, &risposta, 1, 0 ) <= 0) error_handler();
+    send(sd, &risposta, 1, 0 );
 
     if (tipo == AVVERSARIO) //all'avversario viene chiesto di attendere il proprietario (se ha scelto la rivincita)
     {
@@ -219,29 +216,29 @@ char controllo_esito(const unsigned short int *n_giocate)
     // Controlla le righe
     for (int i = 0; i < 3; i++) 
     {
-        if (griglia[i][0] != '\0' && griglia[i][0] == griglia[i][1] && griglia[i][1] == griglia[i][2])
+        if (griglia[i][0] != 0 && griglia[i][0] == griglia[i][1] && griglia[i][1] == griglia[i][2])
         {
-            if(griglia[i][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+            if (griglia[i][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
             else { esito = '2'; printf("Vince l'avversario\n"); }
         }
     }
     // Controlla le colonne
     for (int i = 0; i < 3; i++) 
     {
-        if (griglia[0][i] != '\0' && griglia[0][i] == griglia[1][i] && griglia[1][i] == griglia[2][i])
+        if (griglia[0][i] != 0 && griglia[0][i] == griglia[1][i] && griglia[1][i] == griglia[2][i])
         {
-            if(griglia[i][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+            if (griglia[0][i] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
             else { esito = '2'; printf("Vince l'avversario\n"); }
         }
     }
     // Controlla la diagonale principale
-    if (griglia[0][0] != '\0' && griglia[0][0] == griglia[1][1] && griglia[1][1] == griglia[2][2])
+    if (griglia[0][0] != 0 && griglia[0][0] == griglia[1][1] && griglia[1][1] == griglia[2][2])
     {
-        if(griglia[0][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
+        if (griglia[0][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
         else { esito = '2'; printf("Vince l'avversario\n"); }
     }
     // Controlla la diagonale secondaria
-    if (griglia [0][2] != '\0' && griglia[0][2] == griglia[1][1] && griglia[1][1] == griglia[2][0])
+    if (griglia [0][2] != 0 && griglia[0][2] == griglia[1][1] && griglia[1][1] == griglia[2][0])
     {
         if(griglia[0][2] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
         else { esito = '2'; printf("Vince l'avversario\n"); }

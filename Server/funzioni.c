@@ -286,7 +286,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
     {
         dati_partita -> stato = IN_CORSO;
         round++;
-        if (round > 1) segnala_cambiamento_partite();
+        segnala_cambiamento_partite();
 
         char giocata = '\0';
         char esito_proprietario = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
@@ -328,20 +328,20 @@ void gioca_partita(struct nodo_partita *dati_partita)
         printf("esito p:%c\n", esito_proprietario);
         printf("esito a:%c\n", esito_avversario);
         //si aggiornano i contatori dei giocatori
-        switch (esito_proprietario)
+        if (esito_proprietario == '1' || esito_avversario == '2')
         {
-            case '1':
-                proprietario -> vittorie++;
-                avversario -> sconfitte++;
-                break;
-            case '2': 
-                proprietario -> sconfitte++;
-                avversario -> vittorie++;
-                break;
-            default:
-                proprietario -> pareggi++;
-                avversario -> pareggi++;
-                break;
+            proprietario -> vittorie++;
+            avversario -> sconfitte++;
+        }
+        else if (esito_proprietario == '2' || esito_avversario == '1')
+        {
+            proprietario -> sconfitte++;
+            avversario -> vittorie++;
+        }
+        else if (esito_proprietario == '3' || esito_avversario == '3')
+        {
+            proprietario -> pareggi++;
+            avversario -> pareggi++;
         }
         dati_partita -> stato = TERMINATA;
         segnala_cambiamento_partite();
