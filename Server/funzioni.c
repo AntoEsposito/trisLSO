@@ -197,16 +197,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
                     while (dati_giocatore -> stato != IN_LOBBY)
                     {
                         //controllo periodico in caso il giocatore si disconnetta mentre è in partita
-                        struct timespec tempo_attesa;
-                        clock_gettime(CLOCK_REALTIME, &tempo_attesa);
-                        tempo_attesa.tv_sec += 3;
-                        tempo_attesa.tv_nsec = 0;
-                        int result = pthread_cond_timedwait(&(dati_giocatore -> stato_cv), &(dati_giocatore -> stato_mutex), &tempo_attesa);
-                        if (result == ETIMEDOUT) 
-                        { 
-                            //messaggio nullo che controlla se la socket è ancora attiva
-                            if (send(sd_giocatore, NULL, 0, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
-                        }
+                        pthread_cond_wait(&(dati_giocatore -> stato_cv), &(dati_giocatore -> stato_mutex));
                     }
                     pthread_mutex_unlock(&(dati_giocatore -> stato_mutex));
                 }
@@ -266,13 +257,13 @@ void gioca_partita(struct nodo_partita *dati_partita)
         //controllo periodico in caso il proprietario si disconnetta mentre la partita è in attesa
         struct timespec tempo_attesa;
         clock_gettime(CLOCK_REALTIME, &tempo_attesa);
-        tempo_attesa.tv_sec += 3;
+        tempo_attesa.tv_sec += 2;
         tempo_attesa.tv_nsec = 0;
         int result = pthread_cond_timedwait(&(dati_partita -> stato_cv), &(dati_partita -> stato_mutex), &tempo_attesa);
         if (result == ETIMEDOUT) 
         { 
             //messaggio nullo che controlla se la socket è ancora attiva
-            if (send(sd_proprietario, NULL, 0, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+            if (send(sd_proprietario, "\0", 1, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         }
     }
     pthread_mutex_unlock(&(dati_partita -> stato_mutex));
