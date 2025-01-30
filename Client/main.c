@@ -1,7 +1,11 @@
 #include "funzioni.h"
 
 char griglia[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
+
 int sd = 0;
+
+const char NOERROR = '0';
+const char ERROR = '1';
 
 int main()
 {

@@ -8,6 +8,10 @@ struct nodo_giocatore *testa_giocatori = NULL;
 pthread_mutex_t mutex_partite = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_giocatori = PTHREAD_MUTEX_INITIALIZER;
 
+//costanti di errore
+const char NOERROR = '0';
+const char ERROR = '1';
+
 
 int main()
 {

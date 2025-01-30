@@ -72,7 +72,7 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
         round++;
         unsigned short int n_giocate = 0;
         char esito = '0';
-        char e_flag = '0'; //il server manda 1 in caso di errore
+        char e_flag = NOERROR; //il server manda 1 in caso di errore
         printf("Round %u", round);
         if (tipo == AVVERSARIO ) printf("\nIn attesa del proprietario\n");
         do
@@ -92,7 +92,7 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
                 else //dal secondo turno in poi deve prima ricevere la giocata dell'avversario e poi iniziare il suo turno
                 { //viene controllato il flag di errore prima di ricevere la giocata dell'avversario
                     if (recv(sd, &e_flag, 1, 0) <= 0) error_handler(); 
-                    if (e_flag == '1') {esito = 1; break;}
+                    if (e_flag == ERROR) {esito = 1; break;}
                     //non c'è errore, riceve la giocata dell'avversario
                     if ((esito = ricevi_giocata(&n_giocate)) != '0') break;
                     printf("Tocca a te\n");
@@ -103,7 +103,7 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
             else
             {
                 if (recv(sd, &e_flag, 1, 0) <= 0) error_handler(); 
-                if (e_flag == '1') {esito = 1; break;}
+                if (e_flag == ERROR) {esito = 1; break;}
                 //non c'è errore, riceve la giocata dell'avversario
                 if ((esito = ricevi_giocata(&n_giocate)) != '0') break;
                 printf("Tocca a te\n");
@@ -111,7 +111,7 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
                 printf("Turno dell'avversario\n");
             }
         } while (esito == '0');
-        if (e_flag == '1') {printf("L'avversario si è disconnesso, vittoria a tavolino\n"); break;}
+        if (e_flag == ERROR) {printf("L'avversario si è disconnesso, vittoria a tavolino\n"); break;}
 
     } while (rivincita(tipo));
 }
@@ -285,7 +285,8 @@ void inserisci_X(const unsigned short int giocata)
 void stampa_griglia()
 {
     char c;
-    printf("\n");
+    if (system("clear") < 0) perror("errore"), exit(EXIT_FAILURE);
+
     for(int i=0; i<3; i++) 
     {
         if (griglia[0][i] == '\0') c = ' ';

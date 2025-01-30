@@ -56,4 +56,8 @@ extern struct nodo_giocatore *testa_giocatori;
 extern pthread_mutex_t mutex_partite;
 extern pthread_mutex_t mutex_giocatori;
 
+//costanti di errore durante la partia
+extern const char NOERROR;
+extern const char ERROR;
+
 #endif

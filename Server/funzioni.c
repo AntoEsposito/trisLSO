@@ -298,7 +298,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
         round++;
         segnala_cambiamento_partite();
 
-        char e_flag = '0'; //diventa 1 in caso di disconnessione
+        bool errore = false; //rappresenta un errore di disconnesione
         char giocata = '\0';
         char esito_proprietario = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
         char esito_avversario = '0';
@@ -312,37 +312,37 @@ void gioca_partita(struct nodo_partita *dati_partita)
             if (round%2 != 0)
             {
                 //inizia il proprietario
-                if (recv(sd_proprietario, &giocata, 1, 0) <= 0) {error_handler(sd_proprietario); e_flag = '1'; break;}
-                if (recv(sd_proprietario, &esito_proprietario, 1, 0) <= 0) {error_handler(sd_proprietario); e_flag = '1'; break;}
-                if (send(sd_avversario, &e_flag, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); e_flag = '1'; break;}
-                if (send(sd_avversario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); e_flag = '1'; break;}
+                if (recv(sd_proprietario, &giocata, 1, 0) <= 0) {error_handler(sd_proprietario); errore = true; break;}
+                if (recv(sd_proprietario, &esito_proprietario, 1, 0) <= 0) {error_handler(sd_proprietario); errore = true; break;}
+                if (send(sd_avversario, &NOERROR, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
+                if (send(sd_avversario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
                 if (esito_proprietario != '0') break;
 
                 //turno dell'avversario
-                if (recv(sd_avversario, &giocata, 1, 0) <= 0) {error_handler(sd_avversario); e_flag = '1'; break;}
-                if (recv(sd_avversario, &esito_avversario, 1, 0) <= 0) {error_handler(sd_avversario); e_flag = '1'; break;}
-                if (send(sd_proprietario, &e_flag, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); e_flag = '1'; break;}
-                if (send(sd_proprietario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); e_flag = '1'; break;}
+                if (recv(sd_avversario, &giocata, 1, 0) <= 0) {error_handler(sd_avversario); errore = true; break;}
+                if (recv(sd_avversario, &esito_avversario, 1, 0) <= 0) {error_handler(sd_avversario); errore = true; break;}
+                if (send(sd_proprietario, &NOERROR, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); errore = true; break;}
+                if (send(sd_proprietario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); errore = true; break;}
             }
             else 
             {
                 //inizia l'avversario
-                if (recv(sd_avversario, &giocata, 1, 0) <= 0) {error_handler(sd_avversario); e_flag = '1'; break;}
-                if (recv(sd_avversario, &esito_avversario, 1, 0) <= 0) {error_handler(sd_avversario); e_flag = '1'; break;}
-                if (send(sd_proprietario, &e_flag, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); e_flag = '1'; break;}
-                if (send(sd_proprietario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); e_flag = '1'; break;}
+                if (recv(sd_avversario, &giocata, 1, 0) <= 0) {error_handler(sd_avversario); errore = true; break;}
+                if (recv(sd_avversario, &esito_avversario, 1, 0) <= 0) {error_handler(sd_avversario); errore = true; break;}
+                if (send(sd_proprietario, &NOERROR, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); errore = true; break;}
+                if (send(sd_proprietario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); errore = true; break;}
                 if (esito_avversario != '0') break;
 
                 //turno del proprietario
-                if (recv(sd_proprietario, &giocata, 1, 0) <= 0) {error_handler(sd_proprietario); e_flag = '1'; break;}
-                if (recv(sd_proprietario, &esito_proprietario, 1, 0) <= 0) {error_handler(sd_proprietario); e_flag = '1'; break;}
-                if (send(sd_avversario, &e_flag, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); e_flag = '1'; break;}
-                if (send(sd_avversario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); e_flag = '1'; break;}
+                if (recv(sd_proprietario, &giocata, 1, 0) <= 0) {error_handler(sd_proprietario); errore = true; break;}
+                if (recv(sd_proprietario, &esito_proprietario, 1, 0) <= 0) {error_handler(sd_proprietario); errore = true; break;}
+                if (send(sd_avversario, &NOERROR, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
+                if (send(sd_avversario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
             }
         } while (esito_proprietario == '0' && esito_avversario == '0');
 
         //in caso di errore si aggiornano le vittorie e si esce dalla partita
-        if (e_flag == '1') 
+        if (errore) 
         {
             proprietario -> vittorie++;
             proprietario -> stato = IN_LOBBY;
@@ -661,7 +661,7 @@ void segnala_nuovo_giocatore()
     while (tmp != NULL)
     {
         tid_ricevente = tmp -> tid_giocatore;
-        if (tid_ricevente != tid_mittente && tmp -> stato == IN_LOBBY) pthread_kill(tid_ricevente, SIGUSR2);
+        if (tid_ricevente != tid_mittente && (tmp -> stato == IN_LOBBY || tmp -> stato == IN_RICHIESTA)) pthread_kill(tid_ricevente, SIGUSR2);
         tmp = tmp -> next_node;
     }
 }
@@ -699,7 +699,7 @@ void error_handler(const int sd_giocatore)
         {   //le send non fanno error checking perchè in caso di errore si creerebbe una ricorsione infinita
             if (sd_giocatore == partita -> sd_proprietario) 
             {
-                send(partita -> sd_avversario, "1", 1, MSG_NOSIGNAL);
+                send(partita -> sd_avversario, &ERROR, 1, MSG_NOSIGNAL);
                 struct nodo_giocatore *avversario = trova_giocatore_da_sd(partita -> sd_avversario);
                 if (avversario != NULL)
                 {
@@ -708,7 +708,7 @@ void error_handler(const int sd_giocatore)
                     pthread_cond_signal(&(avversario -> stato_cv));
                 }
             }
-            else send(partita -> sd_proprietario, "1", 1, MSG_NOSIGNAL);
+            else send(partita -> sd_proprietario, &ERROR, 1, MSG_NOSIGNAL);
         }
         cancella_partita(partita); 
         printf("errore: partita cancellata\n");
