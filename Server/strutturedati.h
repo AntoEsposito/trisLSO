@@ -18,6 +18,7 @@ enum stato_partita
 enum stato_giocatore
 {
     IN_LOBBY,
+    IN_RICHIESTA,
     IN_PARTITA
 };
 

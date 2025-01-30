@@ -192,10 +192,14 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
             }
             else
             {
+                dati_giocatore -> stato = IN_RICHIESTA;
                 if (!accetta_partita(partita, sd_giocatore, dati_giocatore -> nome))
                 {
                     if (partita -> richiesta_unione == false)
-                        if (send(sd_giocatore, "Richiesta di unione rifiutata\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
+                        {if (send(sd_giocatore, "Richiesta di unione rifiutata\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);}
+                    else   
+                        {if (send(sd_giocatore, "Un altro giocatore ha già richiesto di unirsi a questa partita\n", 64, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);}
+                    dati_giocatore -> stato = IN_LOBBY;
                 }
                 else
                 {
@@ -215,11 +219,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
 
 bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario)
 {
-    if (partita -> richiesta_unione == true)
-    {
-        if (send(sd_avversario, "Un altro giocatore ha già richiesto di unirsi a questa partita\n", 64, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-        return false;
-    }
+    if (partita -> richiesta_unione == true) return false;
     const int sd_proprietario = partita -> sd_proprietario;
     char buffer[MAXOUT];
     memset(buffer, 0, MAXOUT);

@@ -1,5 +1,7 @@
 Major severity
 
 Minor severity
+CORRETTO-l'avversario riceve update mentre attende la risposta di unione dal proprietario
+1-server crash se si disconnettono entrambi i giocatori in partita nello stesso turno
 
 To test
