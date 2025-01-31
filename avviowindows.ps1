@@ -10,7 +10,7 @@ if ($n_client -lt 1)
 }
 
 # Avvia docker compose
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "docker-compose up --build --scale client=$n_client"
+Start-Process powershell -ArgumentList  "-Command", "docker-compose up --build --scale client=$n_client"
 
 # Aspetta che tutti i container siano avviati
 $allContainersRunning = $false

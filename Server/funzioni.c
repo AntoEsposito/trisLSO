@@ -608,6 +608,7 @@ void invia_partite()
     if (tmp == NULL) {if (send(client_sd, "\nNon ci sono partite attive al momento, scrivi \"crea\" per crearne una o \"esci\" per uscire\n", 90, MSG_NOSIGNAL) < 0) error_handler(client_sd);}
     else
     {
+        if (send(client_sd, "LISTA PARTITE", 13, MSG_NOSIGNAL) < 0) error_handler(client_sd);
         while (tmp != NULL)
         {
             memset(outbuffer, 0, MAXOUT);
@@ -627,7 +628,6 @@ void invia_partite()
                     strcpy(stato_partita, "Terminata\n");
                     break;
             }
-            strcat(outbuffer, "\n\nLISTA PARTITE");
             strcat(outbuffer, "\nPartita di "); strcat(outbuffer, tmp -> proprietario);
             strcat(outbuffer, "\nAvversario: "); strcat(outbuffer, tmp -> avversario);
             strcat(outbuffer, "\nStato: "); strcat(outbuffer, stato_partita);
