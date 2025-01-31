@@ -608,7 +608,7 @@ void invia_partite()
     if (tmp == NULL) {if (send(client_sd, "\nNon ci sono partite attive al momento, scrivi \"crea\" per crearne una o \"esci\" per uscire\n", 90, MSG_NOSIGNAL) < 0) error_handler(client_sd);}
     else
     {
-        if (send(client_sd, "LISTA PARTITE", 13, MSG_NOSIGNAL) < 0) error_handler(client_sd);
+        if (send(client_sd, "\n\nLISTA PARTITE", 15, MSG_NOSIGNAL) < 0) error_handler(client_sd);
         while (tmp != NULL)
         {
             memset(outbuffer, 0, MAXOUT);

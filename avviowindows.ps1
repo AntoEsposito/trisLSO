@@ -8,9 +8,8 @@ if ($n_client -lt 1)
     Write-Host "Riprova, inserisci un numero valido di client"
     exit
 }
-
 # Avvia docker compose
-Start-Process powershell -ArgumentList  "-Command", "docker-compose up --build --scale client=$n_client"
+Start-Process powershell -ArgumentList  "-NoExit", "-Command", "docker-compose up --build --scale client=$n_client"
 
 # Aspetta che tutti i container siano avviati
 $allContainersRunning = $false
