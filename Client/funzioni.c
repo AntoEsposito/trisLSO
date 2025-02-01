@@ -146,6 +146,7 @@ char invia_giocata(unsigned short int *n_giocate)
     //inserisce la giocata nella propria griglia locale e invia l'esito al server
     inserisci_O(num_giocata);
     (*n_giocate)++;
+    if (system("clear") < 0) perror("errore"), exit(EXIT_FAILURE);
     stampa_griglia();
 
     //ha senso controllare l'esito solo se sono state fatte almeno 5 giocate
@@ -166,6 +167,7 @@ char ricevi_giocata(unsigned short int *n_giocate)
 
     inserisci_X(num_giocata);
     (*n_giocate)++;
+    if (system("clear") < 0) perror("errore"), exit(EXIT_FAILURE);
     stampa_griglia();
 
     esito = controllo_esito(n_giocate);
@@ -297,7 +299,6 @@ void inserisci_X(const unsigned short int giocata)
 void stampa_griglia()
 {
     char c;
-    if (system("clear") < 0) perror("errore"), exit(EXIT_FAILURE);
 
     for(int i=0; i<3; i++) 
     {
