@@ -1,54 +1,44 @@
 #!/bin/bash
 
-# Ottieni il tipo di sistema operativo
-OS=$(uname)
-
-# Chiedi all'utente il numero di client
+# Chiedi all'utente il numero di client da avviare
 echo "Inserisci il numero di client da avviare:"
 read n_client
 
-# Controlla il tipo di sistema operativo
-case "$OS" in
-    "Linux") # per Ubuntu e sistemi simili
-        terminal_command="gnome-terminal -- bash -c"
-        ;;
-    "Darwin") # per macOS
-        terminal_command="osascript -e \"tell application \"Terminal\" to do script\""
-        ;;
-    *)
-        echo "Sistema operativo non supportato!"
-        exit 1
-        ;;
-esac
+# Verifica che l'input sia un numero intero maggiore o uguale a 1
+if [ "$n_client" -lt 1 ]; then
+    echo "Riprova, inserisci un numero valido di client"
+    exit 1
+fi
 
-# Avvia i container con Docker Compose
-docker compose up --build --scale client=$n_client
+# Avvia docker-compose in background con build e scaling per i client
+docker-compose up --build --scale client="$n_client"
 
-# Attendere che tutti i container siano avviati
+# Attendi che tutti i container attesi siano in esecuzione
 all_containers_running=false
-while [ "$all_containers_running" != true ]; do
+while [ "$all_containers_running" = false ]; do
     all_containers_running=true
-    for ((i=1; i<=n_client; i++)); do
+    for (( i=1; i<=n_client; i++ )); do
         container_name="tris-lso-client-$i"
-        # Verifica se il container è in esecuzione
-        if ! docker ps --format '{{.Names}}' | grep -q "$container_name"; then
+        if ! docker ps --format "{{.Names}}" | grep -q "$container_name"; then
             all_containers_running=false
             break
         fi
     done
-
-    # Se non tutti i contenitori sono in esecuzione, aspetta 2 secondi
-    if [ "$all_containers_running" != true ]; then
-        echo "Non tutti i container sono avviati, controllo in corso..."
-        sleep 2
+    if [ "$all_containers_running" = false ]; then
+        sleep 2 #aspetta 2 secondi prima di un nuovo conrollo
     fi
 done
 
-echo "Tutti i container sono in esecuzione."
-
-# Ora attacca ai contenitori
-for ((i=1; i<=n_client; i++)); do
+# Avvia una finestra terminale per ciascun client, collegandosi al rispettivo container
+for (( i=1; i<=n_client; i++ )); do
     container_name="tris-lso-client-$i"
-    # Apri una nuova finestra di terminale e attaccati al contenitore
-    $terminal_command "docker attach $container_name; exec bash"
+
+    if [[ "$OSTYPE" == "darwin" ]]; then
+        # macOS: usa AppleScript per aprire una nuova finestra di Terminale
+        osascript -e "tell application \"Terminal\" to do script \"docker attach $container_name\""
+    else
+        # Linux
+        gnome-terminal -- bash -c "docker attach $container_name; exec bash"
+    fi
+
 done
