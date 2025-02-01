@@ -38,7 +38,9 @@ int main()
     sa -> sa_handler = handler_nuovo_giocatore;
     sigaction(SIGUSR2, sa, NULL);
     signal(SIGALRM, sigalrm_handler); //non c'è bisgono del flag restart
+    signal(SIGTERM, SIGTERM_handler);
     free(sa);
+    
     //il server può terminare solo inviandogli esplicitamente un segnale che lo termina
     while (true)
     {

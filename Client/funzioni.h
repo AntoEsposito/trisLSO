@@ -43,5 +43,7 @@ void stampa_griglia();
 void error_handler();
 //uccide il thread quando viene inviato il segnale SIGUSR1
 void SIGUSR1_handler();
+//gestisce SIGTERM inviato da docker quando stoppa i container
+void SIGTERM_handler();
 
 #endif

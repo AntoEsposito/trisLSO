@@ -35,6 +35,7 @@ void* thread_fun()
     close(sd);
     pthread_exit(NULL);
 }
+
 void* fun_scrittore()
 {
     char outbuffer[MAXSCRITTORE];
@@ -62,6 +63,8 @@ void* fun_scrittore()
     close(sd);
     pthread_exit(NULL);
 }
+
+
 void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
 {
     unsigned int round = 0;
@@ -115,6 +118,7 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
 
     } while (rivincita(tipo));
 }
+
 char invia_giocata(unsigned short int *n_giocate)
 { 
     int c; //variabile ausiliaria per pulire lo stdin
@@ -149,6 +153,7 @@ char invia_giocata(unsigned short int *n_giocate)
     send(sd, &esito, 1, 0);
     return esito;
 }
+
 char ricevi_giocata(unsigned short int *n_giocate)
 {
     char giocata[2] = {'\0', '\0'};
@@ -167,6 +172,7 @@ char ricevi_giocata(unsigned short int *n_giocate)
     //non invia l'esito perchè se ne occupa chi invia la giocata
     return esito; 
 }
+
 bool rivincita(const enum tipo_giocatore tipo)
 {
     char buffer[MAXLETTORE];
@@ -218,6 +224,8 @@ bool rivincita(const enum tipo_giocatore tipo)
     else if (strcmp(buffer, "Ritorno in lobby\n") == 0) return false;
     return true;
 }
+
+
 char controllo_esito(const unsigned short int *n_giocate)
 {
     char esito = '0';
@@ -256,6 +264,7 @@ char controllo_esito(const unsigned short int *n_giocate)
     if (esito == '0' && *n_giocate == 9) { esito = '3'; printf("Pareggio\n"); }
     return esito;
 }
+
 bool controllo_giocata(const int giocata)
 {
     if (giocata < 1) return false;
@@ -268,6 +277,7 @@ bool controllo_giocata(const int giocata)
     if (griglia[i_riga][i_colonna] != '\0') return false;
     else return true;
 }
+
 void inserisci_O(const unsigned short int giocata)
 {
     int indice = giocata - 1;
@@ -275,6 +285,7 @@ void inserisci_O(const unsigned short int giocata)
     const unsigned short int i_riga = indice/3;
     griglia[i_riga][i_colonna] = 'O';
 }
+
 void inserisci_X(const unsigned short int giocata)
 {
     int indice = giocata - 1;
@@ -282,6 +293,7 @@ void inserisci_X(const unsigned short int giocata)
     const unsigned short int i_riga = indice/3;
     griglia[i_riga][i_colonna] = 'X';
 }
+
 void stampa_griglia()
 {
     char c;
@@ -309,6 +321,8 @@ void stampa_griglia()
     }
     printf("\n");
 }
+
+
 void inizializza_socket()
 {
     struct sockaddr_in ser_add;
@@ -342,13 +356,22 @@ void inizializza_socket()
     if (connect(sd, (struct sockaddr *)&ser_add, lenght) < 0)
         perror("connect error"), exit(EXIT_FAILURE);
 }
+
+
 void error_handler()
 {
     printf("errore\n");
     close(sd);
     exit(EXIT_FAILURE);
 }
+
 void SIGUSR1_handler()
 {
     pthread_exit(NULL);
+}
+
+void SIGTERM_handler()
+{
+    close(sd);
+    exit(EXIT_SUCCESS);
 }

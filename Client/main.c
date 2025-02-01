@@ -10,6 +10,7 @@ const char ERROR = '1';
 int main()
 {
     signal(SIGUSR1, SIGUSR1_handler);
+    signal (SIGTERM, SIGTERM_handler);
     pthread_t tid;
 
     inizializza_socket();

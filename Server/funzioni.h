@@ -86,6 +86,8 @@ void handler_nuovo_giocatore();
 void error_handler(const int sd_giocatore);
 //gestisce il segnale SIGALRM facendo chiudere al thread la sua socket e chiamando pthread_exit()
 void sigalrm_handler();
+//gestisce SIGTERM inviato da docker quando stoppa i container
+void SIGTERM_handler();
 
 
 #endif

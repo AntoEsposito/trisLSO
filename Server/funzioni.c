@@ -724,3 +724,8 @@ void sigalrm_handler()
     printf("errore: giocatore cancellato\n"); 
     pthread_exit(NULL);
 }
+
+void SIGTERM_handler()
+{
+    exit(EXIT_SUCCESS);
+}
