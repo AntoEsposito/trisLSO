@@ -61,7 +61,8 @@ void* fun_scrittore()
         }
     } while (strcmp(outbuffer, "esci\n") != 0);
     close(sd);
-    pthread_exit(NULL);
+    printf("Uscita\n");
+    exit(EXIT_SUCCESS);
 }
 
 
