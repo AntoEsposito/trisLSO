@@ -207,7 +207,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
                     pthread_mutex_lock(&(dati_giocatore -> stato_mutex));
                     while (dati_giocatore -> stato != IN_LOBBY)
                     {
-                        //controllo periodico in caso il giocatore si disconnetta mentre è in partita
+                        //attende un segnale di fine partita
                         pthread_cond_wait(&(dati_giocatore -> stato_cv), &(dati_giocatore -> stato_mutex));
                     }
                     pthread_mutex_unlock(&(dati_giocatore -> stato_mutex));
