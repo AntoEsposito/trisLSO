@@ -68,6 +68,8 @@ void* fun_scrittore()
 
 void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
 {
+    if (tipo == PROPRIETARIO ) printf("\nRichiesta accettata, inizia la partita!\n");
+    if (tipo == AVVERSARIO ) printf("\nIl proprietario ha accettato la richiesta, inizia la partita!\n");
     unsigned int round = 0;
     do
     {
@@ -76,8 +78,6 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
         unsigned short int n_giocate = 0;
         char esito = '0';
         char e_flag = NOERROR; //il server manda 1 in caso di errore
-        if (tipo == PROPRIETARIO ) printf("\nRichiesta accettata, inizia la partita!\n");
-        if (tipo == AVVERSARIO ) printf("\nIl proprietario ha accettato la richiesta, inizia la partita!\n");
         printf("\nRound %u\n", round);
         if (tipo == AVVERSARIO ) printf("\nTurno dell'avversario\n");
         do
