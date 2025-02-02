@@ -16,19 +16,19 @@ void* thread_fun()
     //il thread scrittore viene ucciso per giocare le partite per evitare conflitti con le send
     while (recv(sd, inbuffer, MAXLETTORE, 0) > 0)
     {
-        printf("%s", inbuffer);
-        if (strcmp(inbuffer, "Richiesta accettata, inizia la partita!\n") == 0) 
+        if (strcmp(inbuffer, "*** Inizia la partita come proprietario ***\n") == 0) 
         {
             pthread_kill(tid_scrittore, SIGUSR1);
             gioca_partite(inbuffer, PROPRIETARIO);
             pthread_create(&tid_scrittore, &attr, fun_scrittore, NULL);
         }
-        else if (strcmp(inbuffer, "Il proprietario ha accettato la richiesta, inizia la partita!\n") == 0) 
+        else if (strcmp(inbuffer, "*** Inizia la partita come avversario ***\n") == 0) 
         {
             pthread_kill(tid_scrittore, SIGUSR1);
             gioca_partite(inbuffer, AVVERSARIO);
             pthread_create(&tid_scrittore, &attr, fun_scrittore, NULL);
         }
+        else printf("%s", inbuffer);
         memset(inbuffer, 0, MAXLETTORE);
     }
     pthread_kill(tid_scrittore, SIGUSR1);
