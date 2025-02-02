@@ -85,28 +85,15 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
             memset(inbuffer, 0, MAXLETTORE);
 
             //controllo che serve a distinguere chi comincia per primo
-            if ((tipo == PROPRIETARIO && round%2 == 1) || (tipo == AVVERSARIO && round%2 == 0))
+            if (((tipo == PROPRIETARIO && round%2 == 1) || (tipo == AVVERSARIO && round%2 == 0)) && (n_giocate == 0))
             {   //ogni player vede egli stesso come O e l'avversario come X
-                if (n_giocate == 0) //primo turno
-                {
-                    stampa_griglia();
-                    printf("Tocca a te\n");
-                    esito = invia_giocata(&n_giocate);
-                    printf("Turno dell'avversario\n");
-                }
-                else //dal secondo turno in poi deve prima ricevere la giocata dell'avversario e poi iniziare il suo turno
-                { //viene controllato il flag di errore prima di ricevere la giocata dell'avversario
-                    if (recv(sd, &e_flag, 1, 0) <= 0) error_handler(); 
-                    if (e_flag == ERROR) {esito = 1; break;}
-                    //non c'è errore, riceve la giocata dell'avversario
-                    if ((esito = ricevi_giocata(&n_giocate)) != '0') break;
-                    printf("Tocca a te\n");
-                    if ((esito = invia_giocata(&n_giocate)) != '0') break;
-                    printf("Turno dell'avversario\n");
-                }
+                stampa_griglia();
+                printf("Tocca a te\n");
+                esito = invia_giocata(&n_giocate);
+                printf("Turno dell'avversario\n");
             }
-            else
-            {
+            else //dal secondo turno in poi deve prima ricevere la giocata dell'avversario e poi iniziare il suo turno
+            {    //viene controllato il flag di errore prima di ricevere la giocata dell'avversario
                 if (recv(sd, &e_flag, 1, 0) <= 0) error_handler(); 
                 if (e_flag == ERROR) {esito = 1; break;}
                 //non c'è errore, riceve la giocata dell'avversario
