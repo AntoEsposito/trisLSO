@@ -157,7 +157,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
 
         if (send(sd_giocatore, outbuffer, strlen(outbuffer), MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
         invia_partite();
-        do //recv può essere interrota da un segnale e restituire EINTR come errore
+        do //recv può essere interrotta da un segnale e restituire EINTR come errore
         { //questo ciclo gestisce l'errore
             if (errno == EINTR) errno = 0;
             if (recv(sd_giocatore, inbuffer, MAXIN, 0) <= 0 && errno != EINTR) error_handler(sd_giocatore);
