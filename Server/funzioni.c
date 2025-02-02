@@ -248,9 +248,12 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
         partita -> sd_avversario = sd_avversario;
         if (send(sd_proprietario, "*** Inizia la partita come proprietario ***\n", 44, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         if (send(sd_avversario, "*** Inizia la partita come avversario ***\n", 42, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-        if (partita != NULL) partita -> stato = IN_CORSO;
-        if (partita != NULL) partita -> richiesta_unione = false;
-        if (partita != NULL) pthread_cond_signal(&(partita -> stato_cv));
+        if (partita != NULL)
+        {
+            partita -> stato = IN_CORSO;
+            partita -> richiesta_unione = false;
+            pthread_cond_signal(&(partita -> stato_cv));
+        }
         return true;
     }
     else

@@ -79,7 +79,7 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
         char esito = '0';
         char e_flag = NOERROR; //il server manda 1 in caso di errore
         printf("\nRound %u\n", round);
-        if (tipo == AVVERSARIO ) printf("\nTurno dell'avversario\n");
+        if ((tipo == AVVERSARIO && round%2 == 1) || (tipo == PROPRIETARIO && round%2 == 0)) printf("\nIn attesa dell'avversario\n");
         do
         {
             memset(inbuffer, 0, MAXLETTORE);
