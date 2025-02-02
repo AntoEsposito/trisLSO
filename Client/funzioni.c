@@ -71,14 +71,15 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
     unsigned int round = 0;
     do
     {
-
         memset(griglia, 0, 9);
         round++;
         unsigned short int n_giocate = 0;
         char esito = '0';
         char e_flag = NOERROR; //il server manda 1 in caso di errore
-        printf("Round %u\n", round);
-        if (tipo == AVVERSARIO ) printf("\nIn attesa del proprietario\n");
+        if (tipo == PROPRIETARIO ) printf("\nRichiesta accettata, inizia la partita!\n");
+        if (tipo == AVVERSARIO ) printf("\nIl proprietario ha accettato la richiesta, inizia la partita!\n");
+        printf("\nRound %u\n", round);
+        if (tipo == AVVERSARIO ) printf("\nTurno dell'avversario\n");
         do
         {
             memset(inbuffer, 0, MAXLETTORE);
