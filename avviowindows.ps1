@@ -36,7 +36,7 @@ while (-not $allContainersRunning)
     }
 }
 
-#avvia una finiestra poweshell per ogni client
+#avvia una finestra powershell per ogni client
 for ($i = 1; $i -le $n_client; $i++)
 {
     Start-Process powershell -ArgumentList "-NoExit", "-Command", "docker attach tris-lso-client-$i"
