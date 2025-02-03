@@ -21,8 +21,9 @@ void inizializza_socket();
 void* thread_fun();
 //funzione che scrive sulla socket
 void* fun_scrittore();
-//gestisce la richiesta di rivincita, restituisce true se la rivincita è stata accettata
-bool rivincita(const enum tipo_giocatore tipo);
+//gestiscono la richiesta di rivincita, restituendo true se la rivincita è stata accettata
+bool rivincita_proprietario();
+bool rivincita_avversario();
 //funzione che gestisce la partita tra 2 giocatori, incluse eventuali rivincite
 void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo);
 //aggiorna la griglia di gioco e il numero giocate, invia la giocata e l'esito della partita al server, restituisce l'esito

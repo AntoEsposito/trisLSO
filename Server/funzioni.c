@@ -324,13 +324,13 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
         bool errore = false; //rappresenta un errore di disconnesione
         char giocata = '\0';
-        char esito_proprietario = '0'; //il codice del client cambia il valore di questa variabile quando la partita finisce
-        char esito_avversario = '0';
+        char esito_proprietario = NESSUNO; //il codice del client cambia il valore di questa variabile quando la partita finisce
+        char esito_avversario = NESSUNO;
         //'0' = ancora in corso '1' = vince proprietario, '2' = vince avversario, '3' = pareggio
 
         //inizia la partita
         do
-        {   //di default il server invia '0' per segnalare che è tutto ok, altrimenti è l'error handler a mandare '1' all'altro giocatore
+        {   //di default il server invia NOERROR per segnalare che è tutto ok, altrimenti è l'error handler a mandare ERROR all'altro giocatore
             //inoltre; visto che la partita è gestita dal thread proprietario, l'error handler si occupa anche di sbloccare l'avversario
             //in caso fosse il proprietario a disconnettersi
             if (round%2 != 0)
@@ -340,7 +340,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
                 if (recv(sd_proprietario, &esito_proprietario, 1, 0) <= 0) {error_handler(sd_proprietario); }
                 if (send(sd_avversario, &NOERROR, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
                 if (send(sd_avversario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
-                if (esito_proprietario != '0') break;
+                if (esito_proprietario != NESSUNO) break;
 
                 //turno dell'avversario
                 if (recv(sd_avversario, &giocata, 1, 0) <= 0) {error_handler(sd_avversario); errore = true; break;}
@@ -355,7 +355,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
                 if (recv(sd_avversario, &esito_avversario, 1, 0) <= 0) {error_handler(sd_avversario); errore = true; break;}
                 if (send(sd_proprietario, &NOERROR, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); }
                 if (send(sd_proprietario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_proprietario); }
-                if (esito_avversario != '0') break;
+                if (esito_avversario != NESSUNO) break;
 
                 //turno del proprietario
                 if (recv(sd_proprietario, &giocata, 1, 0) <= 0) {error_handler(sd_proprietario); }
@@ -363,7 +363,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
                 if (send(sd_avversario, &NOERROR, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
                 if (send(sd_avversario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
             }
-        } while (esito_proprietario == '0' && esito_avversario == '0');
+        } while (esito_proprietario == NESSUNO && esito_avversario == NESSUNO);
 
         //in caso di errore si aggiornano le vittorie e si esce dalla partita
         if (errore) 
@@ -374,7 +374,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
         }
 
         //si aggiornano i contatori dei giocatori
-        if (esito_proprietario == '1' || esito_avversario == '2')
+        if (esito_proprietario == VITTORIA || esito_avversario == SCONFITTA)
         {
             proprietario -> vittorie++;
             avversario -> sconfitte++;
@@ -384,7 +384,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
             pthread_cond_signal(&(avversario -> stato_cv));
             break;
         }
-        else if (esito_proprietario == '2' || esito_avversario == '1')
+        else if (esito_proprietario == SCONFITTA || esito_avversario == VITTORIA)
         {
             proprietario -> sconfitte++;
             avversario -> vittorie++;

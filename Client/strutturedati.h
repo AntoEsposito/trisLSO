@@ -20,4 +20,9 @@ extern int sd;
 extern const char NOERROR;
 extern const char ERROR;
 
+extern const char NESSUNO;
+extern const char VITTORIA;
+extern const char SCONFITTA;
+extern const char PAREGGIO;
+
 #endif

@@ -61,4 +61,11 @@ extern pthread_mutex_t mutex_giocatori;
 extern const char NOERROR;
 extern const char ERROR;
 
+//costanti per l'esito delle partite
+extern const char NESSUNO;
+extern const char VITTORIA;
+extern const char SCONFITTA;
+extern const  char PAREGGIO;
+
+
 #endif

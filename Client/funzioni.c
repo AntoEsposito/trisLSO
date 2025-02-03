@@ -6,7 +6,7 @@ void* thread_fun()
     memset(inbuffer, 0, MAXLETTORE);
 
     //il thread principale crea un thread scrittore detatched
-    pthread_t tid_scrittore;
+    pthread_t tid_scrittore = 0;
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
@@ -69,14 +69,15 @@ void* fun_scrittore()
 void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
 {
     if (tipo == PROPRIETARIO ) printf("\nRichiesta accettata, inizia la partita!\n");
-    if (tipo == AVVERSARIO ) printf("\nIl proprietario ha accettato la richiesta, inizia la partita!\n");
+    else printf("\nIl proprietario ha accettato la richiesta, inizia la partita!\n");
     unsigned int round = 0;
+    bool rivincita = false;
     do
     {
         memset(griglia, 0, 9);
         round++;
         unsigned short int n_giocate = 0;
-        char esito = '0';
+        char esito = NESSUNO;
         char e_flag = NOERROR; //il server manda 1 in caso di errore
         printf("\nRound %u\n", round);
         if ((tipo == AVVERSARIO && round%2 == 1) || (tipo == PROPRIETARIO && round%2 == 0)) printf("\nIn attesa dell'avversario\n");
@@ -95,18 +96,20 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
             else //dal secondo turno in poi deve prima ricevere la giocata dell'avversario e poi iniziare il suo turno
             {    //viene controllato il flag di errore prima di ricevere la giocata dell'avversario
                 if (recv(sd, &e_flag, 1, 0) <= 0) error_handler(); 
-                if (e_flag == ERROR) {esito = 1; break;}
+                if (e_flag == ERROR) {esito = VITTORIA; break;}
                 //non c'è errore, riceve la giocata dell'avversario
-                if ((esito = ricevi_giocata(&n_giocate)) != '0') break;
+                if ((esito = ricevi_giocata(&n_giocate)) != NESSUNO) break;
                 printf("Tocca a te\n");
-                if ((esito = invia_giocata(&n_giocate)) != '0') break;
+                if ((esito = invia_giocata(&n_giocate)) != NESSUNO) break;
                 printf("Turno dell'avversario\n");
             }
-        } while (esito == '0');
+        } while (esito == NESSUNO);
         if (e_flag == ERROR) {printf("L'avversario si è disconnesso, vittoria a tavolino\n"); break;}
-        if (esito != 3) break;
+        if (esito != PAREGGIO) break;
 
-    } while (rivincita(tipo));
+        if (tipo == PROPRIETARIO) rivincita = rivincita_proprietario();
+        else rivincita = rivincita_avversario();
+    } while (rivincita);
 }
 
 char invia_giocata(unsigned short int *n_giocate)
@@ -115,7 +118,7 @@ char invia_giocata(unsigned short int *n_giocate)
     char giocata[2] = {'\0', '\0'};
     int num_giocata = 0;
     bool giocata_valida = false;
-    char esito = '0';
+    char esito =NESSUNO;
 
     do
     {
@@ -149,7 +152,7 @@ char ricevi_giocata(unsigned short int *n_giocate)
 {
     char giocata[2] = {'\0', '\0'};
     char num_giocata = 0;
-    char esito = '0';
+    char esito = NESSUNO;
 
     //da per scontato che la giocata sia valida
     if (recv(sd, giocata, 1, 0) <= 0) error_handler();
@@ -165,24 +168,24 @@ char ricevi_giocata(unsigned short int *n_giocate)
     return esito; 
 }
 
-bool rivincita(const enum tipo_giocatore tipo)
+bool rivincita_proprietario()
 {
-    char buffer[MAXLETTORE];
-    memset(buffer, 0, MAXLETTORE);
+    char buffer[MAXLETTORE/2]; //512 byte è decisamente troppo
+    memset(buffer, 0, MAXLETTORE/2);
     char risposta;
     int c;
     bool risposta_valida = false;
 
-    if (tipo == PROPRIETARIO) printf("L'avversario sta scegliendo se vuole o meno la rivincita\n");
+    printf("L'avversario sta scegliendo se vuole o meno la rivincita\n");
 
-    //Avversario riceve richiesta di rivincita, proprietario riceve risposta dell'avversario
-    if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler();
+    //Il proprietario riceve risposta dell'avversario
+    if (recv(sd, buffer, MAXLETTORE/2, 0) <= 0) error_handler();
     printf("%s", buffer);
 
     do //verifica che l'input sia valido
     {
-        if (strcmp(buffer, "Rivincita rifiutata dall'avversario, ritorno in lobby\n") == 0) return false; //questo messaggio può riceverlo solo il proprietario
-        else memset(buffer, 0, MAXLETTORE);
+        if (strcmp(buffer, "Rivincita rifiutata dall'avversario, ritorno in lobby\n") == 0) return false;
+        else memset(buffer, 0, MAXLETTORE/2);
 
         risposta = getchar();
         if (risposta != '\n') //il giocatore ha premuto invio senza dare input
@@ -194,41 +197,77 @@ bool rivincita(const enum tipo_giocatore tipo)
         }
     } while(!risposta_valida);
 
-    //input corretto, lo invia al server (nel caso del proprietario potrebbe non essercene bisogno)
+    //input corretto, lo invia al server
     send(sd, &risposta, 1, 0 );
 
-    if (tipo == AVVERSARIO) //all'avversario viene chiesto di attendere il proprietario (se ha scelto la rivincita)
-    {
-        if (risposta == 'N')
-        {
-            printf("Rivincita rifiutata\n");
-            return false;
-        }
-        if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler();
-        printf("%s", buffer);
-        if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false;
-        memset(buffer, 0, MAXLETTORE);
-    }
     //riceve e stampa feedback positivo o negativo
-    if (recv(sd, buffer, MAXLETTORE, 0) <= 0) error_handler();
+    if (recv(sd, buffer, MAXLETTORE/2, 0) <= 0) error_handler();
     printf("%s", buffer);
-    if (tipo == AVVERSARIO) { if (strcmp(buffer, "Rivincita rifiutata dal proprietario\n") == 0) return false; }
-    else if (strcmp(buffer, "Ritorno in lobby\n") == 0) return false;
-    return true;
+
+    //Il proprietario ha rifiutato la rivincita
+    if (strcmp(buffer, "Ritorno in lobby\n") == 0) return false;
+    else return true;
+}
+bool rivincita_avversario()
+{
+    char buffer[MAXLETTORE/2];
+    memset(buffer, 0, MAXLETTORE/2);
+    char risposta;
+    int c;
+    bool risposta_valida = false;
+
+    //Riceve dal server richiesta di rivincita
+    if (recv(sd, buffer, MAXLETTORE/2, 0) <= 0) error_handler();
+    printf("%s", buffer);
+
+    do //verifica che l'input sia valido
+    {
+        memset(buffer, 0, MAXLETTORE/2);
+
+        risposta = getchar();
+        if (risposta != '\n') //il giocatore ha premuto invio senza dare input
+        {
+            while ((c = getchar()) != '\n' && c != EOF);  // Svuota lo stdin per sicurezza
+            risposta = toupper(risposta);
+            if (risposta != 'S' && risposta != 'N') printf("Scrivi una risposta valida\n"); 
+            else risposta_valida = true;
+        }
+    } while(!risposta_valida);
+
+    //input corretto, lo invia al server
+    send(sd, &risposta, 1, 0 );
+
+    if (risposta == 'N')
+    {
+        printf("Rivincita rifiutata, ritorno in lobby\n");
+        return false;
+    }
+
+    //all'avversario viene chiesto di attendere il proprietario (se ha scelto la rivincita)
+    if (recv(sd, buffer, MAXLETTORE/2, 0) <= 0) error_handler();
+    printf("%s", buffer);
+
+    //risposta del proprietario
+    if (recv(sd, buffer, MAXLETTORE/2, 0) <= 0) error_handler();
+    printf("%s", buffer);
+
+    //proprietario rifiuta
+    if (strcmp(buffer, "Rivincita rifiutata dal proprietario\n") == 0) return false;
+    else return true;
 }
 
 
 char controllo_esito(const unsigned short int *n_giocate)
 {
-    char esito = '0';
+    char esito = NESSUNO;
     //se la funzione trova un tris di O restituisce 1, tris di X restituisce 2, pareggio restituisce 3
     // Controlla le righe
     for (int i = 0; i < 3; i++) 
     {
         if (griglia[i][0] != 0 && griglia[i][0] == griglia[i][1] && griglia[i][1] == griglia[i][2])
         {
-            if (griglia[i][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
-            else { esito = '2'; printf("Vince l'avversario\n"); }
+            if (griglia[i][0] == 'O') { esito = VITTORIA; printf("Hai vinto!\n"); }
+            else { esito = SCONFITTA; printf("Vince l'avversario\n"); }
         }
     }
     // Controlla le colonne
@@ -236,24 +275,24 @@ char controllo_esito(const unsigned short int *n_giocate)
     {
         if (griglia[0][i] != 0 && griglia[0][i] == griglia[1][i] && griglia[1][i] == griglia[2][i])
         {
-            if (griglia[0][i] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
-            else { esito = '2'; printf("Vince l'avversario\n"); }
+            if (griglia[0][i] == 'O') { esito = VITTORIA; printf("Hai vinto!\n"); }
+            else { esito = SCONFITTA; printf("Vince l'avversario\n"); }
         }
     }
     // Controlla la diagonale principale
     if (griglia[0][0] != 0 && griglia[0][0] == griglia[1][1] && griglia[1][1] == griglia[2][2])
     {
-        if (griglia[0][0] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
-        else { esito = '2'; printf("Vince l'avversario\n"); }
+        if (griglia[0][0] == 'O') { esito = VITTORIA; printf("Hai vinto!\n"); }
+        else { esito = SCONFITTA; printf("Vince l'avversario\n"); }
     }
     // Controlla la diagonale secondaria
     if (griglia [0][2] != 0 && griglia[0][2] == griglia[1][1] && griglia[1][1] == griglia[2][0])
     {
-        if(griglia[0][2] == 'O') { esito = '1'; printf("Hai vinto!\n"); }
-        else { esito = '2'; printf("Vince l'avversario\n"); }
+        if(griglia[0][2] == 'O') { esito = VITTORIA; printf("Hai vinto!\n"); }
+        else { esito = SCONFITTA; printf("Vince l'avversario\n"); }
     }
     //controlla un eventuale pareggio 
-    if (esito == '0' && *n_giocate == 9) { esito = '3'; printf("Pareggio\n"); }
+    if (esito == NESSUNO && *n_giocate == 9) { esito = PAREGGIO; printf("Pareggio\n"); }
     return esito;
 }
 

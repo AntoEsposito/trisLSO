@@ -8,10 +8,15 @@ struct nodo_giocatore *testa_giocatori = NULL;
 pthread_mutex_t mutex_partite = PTHREAD_MUTEX_INITIALIZER;
 pthread_mutex_t mutex_giocatori = PTHREAD_MUTEX_INITIALIZER;
 
-//costanti di errore
+//costanti di errore per gestire le disconnessioni
 const char NOERROR = '0';
 const char ERROR = '1';
 
+//costanti per l'esito delle partite
+const char NESSUNO = '0';
+const char VITTORIA = '1';
+const char SCONFITTA = '2';
+const char PAREGGIO = '3';
 
 int main()
 {
