@@ -184,7 +184,7 @@ bool rivincita_proprietario()
 
     do //verifica che l'input sia valido
     {
-        if (strcmp(buffer, "Rivincita rifiutata dall'avversario, ritorno in lobby\n") == 0) return false;
+        if (strcmp(buffer, "Rivincita rifiutata dall'avversario\n") == 0) return false;
         else memset(buffer, 0, MAXLETTORE/2);
 
         risposta = getchar();
@@ -205,7 +205,7 @@ bool rivincita_proprietario()
     printf("%s", buffer);
 
     //Il proprietario ha rifiutato la rivincita
-    if (strcmp(buffer, "Ritorno in lobby\n") == 0) return false;
+    if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false; //NON ESEGUE
     else return true;
 }
 bool rivincita_avversario()
@@ -239,7 +239,7 @@ bool rivincita_avversario()
 
     if (risposta == 'N')
     {
-        printf("Rivincita rifiutata, ritorno in lobby\n");
+        printf("Rivincita rifiutata\n");
         return false;
     }
 

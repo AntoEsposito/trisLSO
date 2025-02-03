@@ -187,6 +187,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
                     if (send(sd_giocatore, "Impossibile creare partita, attendi qualche minuto\n", 51, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
                 }
             } while (dati_giocatore -> campione && !quit(sd_giocatore));
+            if (send(sd_giocatore, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
         }
         else 
         {
@@ -231,6 +232,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
                             if (send(sd_giocatore, "Impossibile creare partita, attendi qualche minuto\n", 51, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
                         }
                     }
+                    if (send(sd_giocatore, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
                 }
             }
         }
@@ -291,7 +293,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
     struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
     proprietario -> campione = true;
-    if (send(sd_proprietario, "Partita creata, in attesa di un avversario...\n", 46, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+    if (send(sd_proprietario, "In attesa di un avversario...\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
     segnala_cambiamento_partite();
 
     pthread_mutex_lock(&(dati_partita -> stato_mutex));
@@ -414,7 +416,7 @@ bool rivincita(const int sd_proprietario, const int sd_avversario)
     if (send(sd_avversario, "Rivincita? [s/n]\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
     if (recv(sd_avversario, &risposta_avversario, 1, 0) <= 0) error_handler(sd_avversario);
     
-    if (risposta_avversario != 'S') {if (send(sd_proprietario, "Rivincita rifiutata dall'avversario, ritorno in lobby\n", 54, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);}
+    if (risposta_avversario != 'S') {if (send(sd_proprietario, "Rivincita rifiutata dall'avversario\n", 36, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);}
     else 
     {
         if (send(sd_avversario, "In attesa del proprietario...\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
@@ -426,7 +428,7 @@ bool rivincita(const int sd_proprietario, const int sd_avversario)
         if (risposta_proprietario == 'N')
         {
             if (send(sd_avversario, "Rivincita rifiutata dal proprietario\n", 37, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-            if (send(sd_proprietario, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
+            if (send(sd_proprietario, "Rivincita rifiutata\n", 20, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         }
         if (avversario != NULL)
         {
@@ -450,11 +452,7 @@ bool quit(const int client_sd)
     if (recv(client_sd, &risposta, 1, 0) <= 0) error_handler(client_sd);
     risposta = toupper(risposta);
     if (risposta == 'S') return false;
-    else
-    {
-        if (send(client_sd, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(client_sd);
-        return true;
-    }
+    else return true;
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di gestione lista giocatori
