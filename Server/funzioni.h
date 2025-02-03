@@ -45,6 +45,8 @@ bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, cons
 void gioca_partita(struct nodo_partita *dati_partita);
 //restituisce true se entrambi i giocatori decidono di giocare una rivincita
 bool rivincita(const int sd_proprietario, const int sd_avversario);
+//chiede al giocatore se tornare alla lobby
+bool quit(const int client_sd);
 
 
 /////////////////funzioni di gestione lista giocatori

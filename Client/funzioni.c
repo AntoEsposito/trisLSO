@@ -104,6 +104,7 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
             }
         } while (esito == '0');
         if (e_flag == ERROR) {printf("L'avversario si è disconnesso, vittoria a tavolino\n"); break;}
+        if (esito != 3) break;
 
     } while (rivincita(tipo));
 }

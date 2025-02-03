@@ -28,6 +28,7 @@ struct nodo_giocatore
     enum stato_giocatore stato;
     pthread_cond_t stato_cv;
     pthread_mutex_t stato_mutex;
+    bool campione;
     unsigned int vittorie;
     unsigned int sconfitte;
     unsigned int pareggi;

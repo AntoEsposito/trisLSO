@@ -144,6 +144,7 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
     {
         memset(inbuffer, 0, MAXIN);
         memset(outbuffer, 0, MAXOUT);
+        dati_giocatore -> stato = IN_LOBBY;
         //conversione in stringhe delle statistiche del giocatore
         char vittorie[3]; sprintf(vittorie, "%u", dati_giocatore -> vittorie);
         char sconfitte[3]; sprintf(sconfitte, "%u", dati_giocatore -> sconfitte);
@@ -172,14 +173,20 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
         if (strcmp(inbuffer, "ESCI") == 0) connesso = false;
         else if (strcmp(inbuffer, "CREA") == 0) 
         {
-            struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
-            if (nodo_partita != NULL)
+            do
             {
-                gioca_partita(nodo_partita);
-                cancella_partita(nodo_partita);
-                printf("partita cancellata\n"); 
-            }
-            else if (send(sd_giocatore, "Impossibile creare partita, attendi qualche minuto\n", 51, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
+                struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
+                if (nodo_partita != NULL) 
+                {
+                    gioca_partita(nodo_partita);
+                    cancella_partita(nodo_partita);
+                    printf("partita cancellata\n");
+                }
+                else
+                {
+                    if (send(sd_giocatore, "Impossibile creare partita, attendi qualche minuto\n", 51, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
+                }
+            } while (dati_giocatore -> campione && !quit(sd_giocatore));
         }
         else 
         {
@@ -199,18 +206,31 @@ void funzione_lobby(struct nodo_giocatore *dati_giocatore)
                         {if (send(sd_giocatore, "Richiesta di unione rifiutata\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);}
                     else   
                         {if (send(sd_giocatore, "Un altro giocatore ha già richiesto di unirsi a questa partita\n", 64, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);}
-                    dati_giocatore -> stato = IN_LOBBY;
                 }
                 else
                 {
                     dati_giocatore -> stato = IN_PARTITA;
                     pthread_mutex_lock(&(dati_giocatore -> stato_mutex));
-                    while (dati_giocatore -> stato != IN_LOBBY)
+                    while (dati_giocatore -> stato == IN_PARTITA)
                     {
                         //attende un segnale di fine partita
                         pthread_cond_wait(&(dati_giocatore -> stato_cv), &(dati_giocatore -> stato_mutex));
                     }
                     pthread_mutex_unlock(&(dati_giocatore -> stato_mutex));
+                    while (dati_giocatore -> campione && !quit(sd_giocatore))
+                    {
+                        struct nodo_partita *nodo_partita = crea_partita_in_testa(dati_giocatore -> nome, sd_giocatore);
+                        if (nodo_partita != NULL) 
+                        {
+                            gioca_partita(nodo_partita);
+                            cancella_partita(nodo_partita);
+                            printf("partita cancellata\n");
+                        }
+                        else
+                        {
+                            if (send(sd_giocatore, "Impossibile creare partita, attendi qualche minuto\n", 51, MSG_NOSIGNAL) < 0) error_handler(sd_giocatore);
+                        }
+                    }
                 }
             }
         }
@@ -267,6 +287,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
     const int sd_proprietario = dati_partita -> sd_proprietario;
     struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     proprietario -> stato = IN_PARTITA;
+    proprietario -> campione = true;
     if (send(sd_proprietario, "Partita creata, in attesa di un avversario...\n", 46, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
     segnala_cambiamento_partite();
 
@@ -345,28 +366,35 @@ void gioca_partita(struct nodo_partita *dati_partita)
         if (errore) 
         {
             proprietario -> vittorie++;
-            proprietario -> stato = IN_LOBBY;
+            proprietario -> campione = true;
             break;
         }
 
-        printf("esito p:%c\n", esito_proprietario);
-        printf("esito a:%c\n", esito_avversario);
         //si aggiornano i contatori dei giocatori
         if (esito_proprietario == '1' || esito_avversario == '2')
         {
             proprietario -> vittorie++;
             avversario -> sconfitte++;
+            proprietario -> campione = true;
+            avversario -> campione = false;
+            avversario -> stato = IN_LOBBY;
+            pthread_cond_signal(&(avversario -> stato_cv));
+            break;
         }
         else if (esito_proprietario == '2' || esito_avversario == '1')
         {
             proprietario -> sconfitte++;
             avversario -> vittorie++;
+            proprietario -> campione = false;
+            avversario -> campione = true;
+            avversario -> stato = IN_RICHIESTA;
+            pthread_cond_signal(&(avversario -> stato_cv));
+            break;
         }
-        else if (esito_proprietario == '3' || esito_avversario == '3')
-        {
-            proprietario -> pareggi++;
-            avversario -> pareggi++;
-        }
+
+        proprietario -> pareggi++;
+        avversario -> pareggi++;
+
         dati_partita -> stato = TERMINATA;
         segnala_cambiamento_partite();
 
@@ -376,7 +404,6 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
 bool rivincita(const int sd_proprietario, const int sd_avversario)
 {
-    struct nodo_giocatore *proprietario = trova_giocatore_da_sd(sd_proprietario);
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
     char risposta_avversario = '\0';
     char risposta_proprietario = '\0';
@@ -398,21 +425,33 @@ bool rivincita(const int sd_proprietario, const int sd_avversario)
             if (send(sd_avversario, "Rivincita rifiutata dal proprietario\n", 37, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
             if (send(sd_proprietario, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         }
-        proprietario -> stato = IN_LOBBY;
         if (avversario != NULL)
         {
-            avversario -> stato = IN_LOBBY;
+            avversario -> stato = IN_RICHIESTA;
             pthread_cond_signal(&(avversario -> stato_cv));
         }
         return false;
     }
-    if (risposta_avversario == 'S' && risposta_proprietario == 'S')
+    else
     {
         if (send(sd_avversario, "Rivincita accettata, pronti per il prossimo round\n", 50, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
         if (send(sd_proprietario, "Rivincita accettata, pronti per il prossimo round\n", 50, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         return true;
     }
-    return false; //questo return non viene mai raggiunto
+}
+
+bool quit(const int client_sd)
+{
+    char risposta = '\0';
+    if (send(client_sd, "Vuoi cercare un nuovo avversario? [s/n]\n", 40, MSG_NOSIGNAL) < 0) error_handler(client_sd);
+    if (recv(client_sd, &risposta, 1, 0) <= 0) error_handler(client_sd);
+    risposta = toupper(risposta);
+    if (risposta == 'S') return false;
+    else
+    {
+        if (send(client_sd, "Ritorno in lobby\n", 17, MSG_NOSIGNAL) < 0) error_handler(client_sd);
+        return true;
+    }
 }
 
 //~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ funzioni di gestione lista giocatori
@@ -438,6 +477,7 @@ struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const
     nuova_testa -> stato = IN_LOBBY;
     nuova_testa -> tid_giocatore = pthread_self();
     nuova_testa -> sd_giocatore = client_sd;
+    nuova_testa -> campione = false;
     pthread_mutex_lock(&mutex_giocatori);
     nuova_testa -> next_node = testa_giocatori;
 
@@ -704,14 +744,20 @@ void error_handler(const int sd_giocatore)
                 if (avversario != NULL)
                 {
                     avversario -> vittorie++;
-                    avversario -> stato = IN_LOBBY;
+                    avversario -> campione = true;
+                    avversario -> stato = IN_RICHIESTA;
                     pthread_cond_signal(&(avversario -> stato_cv));
                 }
+                cancella_partita(partita); 
+                printf("errore: partita cancellata\n");
             }
             else send(partita -> sd_proprietario, &ERROR, 1, MSG_NOSIGNAL);
         }
-        cancella_partita(partita); 
-        printf("errore: partita cancellata\n");
+        else
+        {
+            cancella_partita(partita); 
+            printf("errore: partita cancellata\n");
+        }
     }
     if (giocatore != NULL) pthread_kill(tid, SIGALRM);
 }
