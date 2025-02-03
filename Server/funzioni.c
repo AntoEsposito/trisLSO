@@ -428,7 +428,6 @@ bool rivincita(const int sd_proprietario, const int sd_avversario)
         if (risposta_proprietario == 'N')
         {
             if (send(sd_avversario, "Rivincita rifiutata dal proprietario\n", 37, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
-            if (send(sd_proprietario, "Rivincita rifiutata\n", 20, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);
         }
         if (avversario != NULL)
         {

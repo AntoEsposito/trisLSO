@@ -206,13 +206,17 @@ bool rivincita_proprietario()
     //input corretto, lo invia al server
     send(sd, &risposta, 1, 0 );
 
-    //riceve e stampa feedback positivo o negativo
-    if (recv(sd, buffer, MAXLETTORE/2, 0) <= 0) error_handler();
-    printf("%s", buffer);
-
-    //Il proprietario ha rifiutato la rivincita
-    if (strcmp(buffer, "Rivincita rifiutata\n") == 0) return false; //NON ESEGUE
-    else return true;
+    if (risposta == 'N')
+    {
+        printf("Rivincita rifiutata\n");
+        return false;
+    }
+    else //il server invia il messaggio di conferma rivincita
+    {
+        if (recv(sd, buffer, MAXLETTORE/2, 0) <= 0) error_handler();
+        printf("%s", buffer);
+        return true;
+    }
 }
 bool rivincita_avversario()
 {
