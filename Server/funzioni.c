@@ -414,7 +414,7 @@ bool rivincita(const int sd_proprietario, const int sd_avversario)
     if (send(sd_avversario, "Rivincita? [s/n]\n", 17, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
     if (recv(sd_avversario, &risposta_avversario, 1, 0) <= 0) error_handler(sd_avversario);
     
-    if (risposta_avversario == 'N') {if (send(sd_proprietario, "Rivincita rifiutata dall'avversario, ritorno in lobby\n", 54, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);}
+    if (risposta_avversario != 'S') {if (send(sd_proprietario, "Rivincita rifiutata dall'avversario, ritorno in lobby\n", 54, MSG_NOSIGNAL) < 0) error_handler(sd_proprietario);}
     else 
     {
         if (send(sd_avversario, "In attesa del proprietario...\n", 30, MSG_NOSIGNAL) < 0) error_handler(sd_avversario);
