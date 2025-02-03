@@ -2,5 +2,6 @@ Major severity
 
 Minor severity
 1-server crash se si disconnettono entrambi i giocatori in partita nello stesso turno
+2-segmentation fault del proprietario se l'avversario chiede rivincita e proprietario rifiuta (in caso di pareggio)
 
 To test
