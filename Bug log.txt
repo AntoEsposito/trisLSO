@@ -1,6 +1,5 @@
 Major severity
 
 Minor severity
-1-server crash se si disconnettono entrambi i giocatori in partita nello stesso turno (non mi risulta)
 
 To test
