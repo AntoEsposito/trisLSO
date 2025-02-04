@@ -315,6 +315,7 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
     const int sd_avversario = dati_partita -> sd_avversario;
     struct nodo_giocatore *avversario = trova_giocatore_da_sd(sd_avversario);
+    avversario -> campione = false;
 
     unsigned int round = 0;
 

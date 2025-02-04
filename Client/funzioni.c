@@ -377,7 +377,7 @@ void inizializza_socket()
         perror("set REUSEADDR option error"), exit(EXIT_FAILURE);
 
     struct timeval timer;
-    timer.tv_sec = 120;  // Timer di 120 secondi
+    timer.tv_sec = 300;  // Timer di 300 secondi
     timer.tv_usec = 0;
 
     if (setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &timer, sizeof(timer)) < 0 || setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timer, sizeof(timer)) < 0)
