@@ -17,6 +17,4 @@ Attenzione perchè nel caso di Windows e macOS, il Sistema Operativo potrebbe bl
 2) macOS: rimuovere l'attributo di quarantena scrivendo "xattr -d com.apple.quarantine ./avviounix.sh", e poi avviare lo script (punto 5)
 
 
-Nel caso non si potesse comunque avviare lo script per qualsiasi problema, scrivere manualmente nel terminale "docker compose up --scale client=n", per avviare il server
-ed un numero n di client. Quando tutti i container saranno in esecuzione, aprire un terminale per ogni client e scrivere "docker attach tris-lso-client-i", in modo da
-collegare manualmente il terminale al client desiderato.
+Nel caso non si potesse comunque avviare lo script per qualsiasi problema, scrivere manualmente nel terminale "docker compose up --scale client=n", per avviare il server ed un numero n di client. Quando tutti i container saranno in esecuzione, aprire un terminale per ogni client e scrivere "docker attach tris-lso-client-i", in modo da collegare manualmente il terminale al client desiderato.

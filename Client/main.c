@@ -26,7 +26,6 @@ int main()
         perror("thread creation error"), exit(EXIT_FAILURE);
 
     pthread_join(tid, NULL);
-    if (errno != 0) perror("Si è verificato un errore");
-    else printf("Uscita\n");
+    printf("Uscita\n");
     return 0;
 }

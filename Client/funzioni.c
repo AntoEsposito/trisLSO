@@ -37,8 +37,16 @@ void* thread_fun()
         else printf("%s", inbuffer);
         memset(inbuffer, 0, MAXLETTORE);
     }
-    pthread_kill(tid_scrittore, SIGUSR1);
-    close(sd);
+    if (errno != 0) 
+    {
+        pthread_kill(tid_scrittore, SIGUSR1);
+        error_handler();
+    }
+    else
+    {
+        pthread_kill(tid_scrittore, SIGUSR1);
+        close(sd);
+    }
     pthread_exit(NULL);
 }
 
@@ -52,7 +60,10 @@ void* fun_scrittore()
         //strnlen è più sicura di strlen per stringhe che potrebbero non terminare con \0 come in questo caso
         if (fgets(outbuffer, MAXSCRITTORE, stdin) != NULL && outbuffer[strnlen(outbuffer, MAXSCRITTORE)-1] == '\n') //massimo 15 caratteri nel buffer escluso \n
         {
-            if (outbuffer[0] != '\n') send(sd, outbuffer, strlen(outbuffer)-1, 0);
+            if (outbuffer[0] != '\n')
+            {
+                if (send(sd, outbuffer, strlen(outbuffer)-1, 0) < 0) error_handler();
+            }
             else 
             {
                 outbuffer[0] = '\0'; //evita che il giocatore invii un input vuoto
@@ -400,8 +411,12 @@ void inizializza_socket()
 
 void error_handler()
 {
-    printf("errore\n");
-    close(sd);
+    if (errno == EAGAIN || errno == EWOULDBLOCK) printf("disconnesso per inattività\n");
+    else 
+    {   
+        printf("Si è verificato un errore\n");
+        close(sd);
+    }
     exit(EXIT_FAILURE);
 }
 
