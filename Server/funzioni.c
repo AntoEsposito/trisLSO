@@ -367,8 +367,6 @@ void gioca_partita(struct nodo_partita *dati_partita)
                 if (send(sd_avversario, &giocata, 1, MSG_NOSIGNAL) < 0) {error_handler(sd_avversario); errore = true; break;}
             }
         } while (esito_proprietario == NESSUNO && esito_avversario == NESSUNO);
-        dati_partita -> stato = TERMINATA;
-        segnala_cambiamento_partite();
 
         //in caso di errore si aggiornano le vittorie e si esce dalla partita
         if (errore) 
@@ -402,6 +400,9 @@ void gioca_partita(struct nodo_partita *dati_partita)
 
         proprietario -> pareggi++;
         avversario -> pareggi++;
+
+        dati_partita -> stato = TERMINATA;
+        segnala_cambiamento_partite();
 
         //partita finita, rimane in stato terminata finchè la rivincita viene accettata o rifiutata
     } while (rivincita(sd_proprietario, sd_avversario));
