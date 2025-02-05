@@ -10,21 +10,27 @@ if [ "$n_client" -lt 1 ]; then
     exit 1
 fi
 
-# Avvia docker-compose in background con build e scaling per i client
-docker-compose up --build --scale client="$n_client"
+# Avvia docker-compose con build e scaling per i client
+if [[ "$OSTYPE" == "darwin" ]]; then
+    # macOS: usa AppleScript per aprire una nuova finestra di Terminale
+    osascript -e "tell application \"Terminal\" to do script \"docker-compose up --build --scale client=$n_client\""
+else
+    # Linux
+    gnome-terminal -- bash -c "docker-compose up --build --scale client=$n_client; exec bash"
+fi
 
 # Attendi che tutti i container attesi siano in esecuzione
-all_containers_running=false
-while [ "$all_containers_running" = false ]; do
-    all_containers_running=true
+all_containers_running="false"
+while [ "$all_containers_running" = "false" ]; do
+    all_containers_running="true"
     for (( i=1; i<=n_client; i++ )); do
         container_name="tris-lso-client-$i"
         if ! docker ps --format "{{.Names}}" | grep -q "$container_name"; then
-            all_containers_running=false
+            all_containers_running="false"
             break
         fi
     done
-    if [ "$all_containers_running" = false ]; then
+    if [ "$all_containers_running" = "false" ]; then
         sleep 2 #aspetta 2 secondi prima di un nuovo conrollo
     fi
 done
@@ -35,10 +41,9 @@ for (( i=1; i<=n_client; i++ )); do
 
     if [[ "$OSTYPE" == "darwin" ]]; then
         # macOS: usa AppleScript per aprire una nuova finestra di Terminale
-        osascript -e "tell application \"Terminal\" to do script \"docker attach $container_name\""
+        osascript -e "tell application \"Terminal\" to do script \"docker attach '$container_name'\""
     else
         # Linux
-        gnome-terminal -- bash -c "docker attach $container_name; exec bash"
+        gnome-terminal -- bash -c "docker attach '$container_name'; exec bash"
     fi
-
 done
