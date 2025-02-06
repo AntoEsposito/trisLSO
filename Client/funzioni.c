@@ -1,6 +1,6 @@
 #include "funzioni.h"
 
-void* thread_fun()
+void funzione_principale()
 {
     char inbuffer[MAXLETTORE];
     memset(inbuffer, 0, MAXLETTORE);
@@ -47,7 +47,6 @@ void* thread_fun()
         pthread_kill(tid_scrittore, SIGUSR1);
         close(sd);
     }
-    pthread_exit(NULL);
 }
 
 void* fun_scrittore()
@@ -139,7 +138,7 @@ char invia_giocata(unsigned short int *n_giocate)
 
     do
     {
-        printf("Scrivi un numero da 1 a 9 per indicare dove posizionare la O\n");
+        printf("Scrivi un numero da 1 a 9 per indicare dove posizionare la O, oppure 0 per arrenderti\n");
         giocata[0] = getchar();
         if (giocata [0] != '\n') //controllo per un invio nullo
         {
@@ -154,10 +153,18 @@ char invia_giocata(unsigned short int *n_giocate)
     send(sd, giocata, 1, 0);
 
     //inserisce la giocata nella propria griglia locale e invia l'esito al server
-    inserisci_O(num_giocata);
-    (*n_giocate)++;
+    if (num_giocata != 0) inserisci_O(num_giocata);
+
     if (system("clear") < 0) perror("errore"), exit(EXIT_FAILURE);
     stampa_griglia();
+
+    if (num_giocata == 0) 
+    {
+        printf("Ti sei arreso, vince l'avversario\n");
+        send(sd, &SCONFITTA, 1, 0);
+        return SCONFITTA;
+    }
+    (*n_giocate)++;
 
     //ha senso controllare l'esito solo se sono state fatte almeno 5 giocate
     if (*(n_giocate) >= 5) esito = controllo_esito(n_giocate);
@@ -175,10 +182,18 @@ char ricevi_giocata(unsigned short int *n_giocate)
     if (recv(sd, giocata, 1, 0) <= 0) error_handler();
     num_giocata = atoi(giocata);
 
-    inserisci_X(num_giocata);
-    (*n_giocate)++;
+    if (num_giocata != 0) inserisci_X(num_giocata);
+
     if (system("clear") < 0) perror("errore"), exit(EXIT_FAILURE);
     stampa_griglia();
+
+    if (num_giocata == 0)
+    {
+        printf("L'avversario si è arreso, hai vinto!\n");
+        return VITTORIA;
+    }
+    (*n_giocate)++;
+
 
     esito = controllo_esito(n_giocate);
     //non invia l'esito perchè se ne occupa chi invia la giocata
@@ -319,7 +334,8 @@ char controllo_esito(const unsigned short int *n_giocate)
 
 bool controllo_giocata(const int giocata)
 {
-    if (giocata < 1) return false;
+    if (giocata == 0) return true; //resa
+    if (giocata < 0) return false;
     if (giocata > 9) return false;
 
     //controlla se la casella selezionata è gia occupata

@@ -17,8 +17,8 @@
 
 //si connette alla socket del server, restituisce il sd del client
 void inizializza_socket();
-//funzione che legge dalla socket
-void* thread_fun();
+//funzione che rappresenta il ciclo di vita del giocatore
+void funzione_principale();
 //funzione che scrive sulla socket
 void* fun_scrittore();
 //gestiscono la richiesta di rivincita, restituendo true se la rivincita è stata accettata

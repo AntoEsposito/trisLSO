@@ -18,14 +18,9 @@ int main()
 {
     signal(SIGUSR1, SIGUSR1_handler);
     signal(SIGTERM, SIGTERM_handler);
-    pthread_t tid;
 
     inizializza_socket();
 
-    if (pthread_create(&tid, NULL, thread_fun, NULL) < 0)
-        perror("thread creation error"), exit(EXIT_FAILURE);
-
-    pthread_join(tid, NULL);
-    printf("Uscita\n");
+    funzione_principale();
     return 0;
 }

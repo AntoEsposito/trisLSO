@@ -2,6 +2,7 @@
 #define STRUTTUREDATI_H
 
 #include <pthread.h>
+#include <stdbool.h>
 
 #define MAXPARTITA 64 //dimensione del buffer usato per la gestione di una partita
 #define MAXPLAYER 16 //il nome di un player può essere lungo massimo 15 caratteri

@@ -12,7 +12,6 @@
 #include <arpa/inet.h>
 #include <netinet/tcp.h>
 #include <signal.h>
-#include <stdbool.h>
 #include "strutturedati.h"
 
 
