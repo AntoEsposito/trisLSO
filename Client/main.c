@@ -21,6 +21,6 @@ int main()
 
     inizializza_socket();
 
-    funzione_principale();
+    funzione_lobby();
     return 0;
 }

@@ -1,6 +1,6 @@
 #include "funzioni.h"
 
-void funzione_principale()
+void funzione_lobby()
 {
     char inbuffer[MAXLETTORE];
     memset(inbuffer, 0, MAXLETTORE);
@@ -12,7 +12,7 @@ void funzione_principale()
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
     pthread_create(&tid_scrittore, &attr, fun_scrittore, NULL);
 
-    for (int i = 10; i >= 0; i--)
+    for (int i = 5; i >= 0; i--)
     {
         sleep(1);
         printf("%d\n",i);
