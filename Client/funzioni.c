@@ -10,7 +10,7 @@ void funzione_lobby()
     pthread_attr_t attr;
     pthread_attr_init(&attr);
     pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_DETACHED);
-    pthread_create(&tid_scrittore, &attr, fun_scrittore, NULL);
+    pthread_create(&tid_scrittore, &attr, thread_scrittore, NULL);
 
     for (int i = 5; i >= 0; i--)
     {
@@ -26,13 +26,13 @@ void funzione_lobby()
         {
             pthread_kill(tid_scrittore, SIGUSR1);
             gioca_partite(inbuffer, PROPRIETARIO);
-            pthread_create(&tid_scrittore, &attr, fun_scrittore, NULL);
+            pthread_create(&tid_scrittore, &attr, thread_scrittore, NULL);
         }
         else if (strcmp(inbuffer, "*** Inizia la partita come avversario ***\n") == 0) 
         {
             pthread_kill(tid_scrittore, SIGUSR1);
             gioca_partite(inbuffer, AVVERSARIO);
-            pthread_create(&tid_scrittore, &attr, fun_scrittore, NULL);
+            pthread_create(&tid_scrittore, &attr, thread_scrittore, NULL);
         }
         else printf("%s", inbuffer);
         memset(inbuffer, 0, MAXLETTORE);
@@ -49,7 +49,7 @@ void funzione_lobby()
     }
 }
 
-void* fun_scrittore()
+void* thread_scrittore()
 {
     char outbuffer[MAXSCRITTORE];
 

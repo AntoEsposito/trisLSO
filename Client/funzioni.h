@@ -20,7 +20,7 @@ void inizializza_socket();
 //funzione che rappresenta il ciclo di vita del giocatore
 void funzione_lobby();
 //funzione che scrive sulla socket
-void* fun_scrittore();
+void* thread_scrittore();
 //gestiscono la richiesta di rivincita, restituendo true se la rivincita è stata accettata
 bool rivincita_proprietario();
 bool rivincita_avversario();
