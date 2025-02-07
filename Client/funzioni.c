@@ -399,9 +399,6 @@ void inizializza_socket()
         perror("socket creation error"), exit(EXIT_FAILURE);
 
     const int opt = 1;
-    //opzione reuseaddr per evitare problemi coi riavvii
-    if (setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) 
-        perror("set REUSEADDR option error"), exit(EXIT_FAILURE);
 
     struct timeval timer;
     timer.tv_sec = 300;  // Timer di 300 secondi

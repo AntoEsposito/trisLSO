@@ -23,7 +23,6 @@ int main()
     int sd = inizializza_server();
     printf("Server running on port 8080\n");
     
-    const int opt = 1;
     int client_sd;
     struct sockaddr_in client_address;
     socklen_t lenght = sizeof(struct sockaddr_in);
@@ -51,9 +50,6 @@ int main()
     {
         if ((client_sd = accept(sd, (struct sockaddr *) &client_address, &lenght)) < 0)
             { perror("accept error\n"); continue; }
-        //disattiva il buffering dei dati (algoritmo di Nagle)
-        if (setsockopt(client_sd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt)) < 0)
-            { perror("set tcpnodelay error"); continue; }
 
         pthread_t tid;
         if (pthread_create(&tid, &attr, thread_giocatore, &client_sd) != 0)

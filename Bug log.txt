@@ -1,5 +1,0 @@
-Major severity
-
-Minor severity
-
-To test
