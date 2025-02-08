@@ -20,7 +20,7 @@ void inizializza_socket();
 
 //funzione che rappresenta il ciclo di vita del giocatore
 void funzione_lobby();
-//funzione che scrive sulla socket
+//start function del thread che scrive sulla socket
 void* thread_scrittore();
 
 
