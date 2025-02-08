@@ -33,12 +33,15 @@ char* verifica_giocatore(const int client_sd);
 bool esiste_giocatore(const char *nome_giocatore);
 
 
-/////////////////funzioni di gestione partite
+/////////////////funzioni di gestione lobby
 
 //funzione che gestisce il ciclo di vita di un giocatore
 void funzione_lobby(struct nodo_giocatore *dati_giocatore);
 //se il proprietario accetta la richiesta di unione alla partita inserisce i dati dell'avversario nel nodo partita e restituisce vero, falso altrimenti
 bool accetta_partita(struct nodo_partita *partita, const int sd_avversario, const char *nome_avversario);
+
+
+/////////////////funzioni di gestione partite
 
 //funzione che gestisce la partita tra 2 giocatori
 void gioca_partita(struct nodo_partita *dati_partita);
