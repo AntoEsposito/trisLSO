@@ -37,7 +37,7 @@ void funzione_lobby()
         else printf("%s", inbuffer);
         memset(inbuffer, 0, MAXLETTORE);
     }
-    if (errno != 0) 
+    if (errno != 0)
     {
         pthread_kill(tid_scrittore, SIGUSR1);
         error_handler();
@@ -59,13 +59,13 @@ void* fun_scrittore()
         //strnlen è più sicura di strlen per stringhe che potrebbero non terminare con \0 come in questo caso
         if (fgets(outbuffer, MAXSCRITTORE, stdin) != NULL && outbuffer[strnlen(outbuffer, MAXSCRITTORE)-1] == '\n') //massimo 15 caratteri nel buffer escluso \n
         {
-            if (outbuffer[0] != '\n')
+            if (outbuffer[0] != '\n') //input valido
             {
                 if (send(sd, outbuffer, strlen(outbuffer)-1, 0) < 0) error_handler();
             }
             else 
             {
-                outbuffer[0] = '\0'; //evita che il giocatore invii un input vuoto
+                outbuffer[0] = '\0'; //input vuoto
                 printf("Inserisci un input valido\n");
             }
         }
@@ -86,16 +86,19 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
 {
     if (tipo == PROPRIETARIO ) printf("\nRichiesta accettata, inizia la partita!\n");
     else printf("\nIl proprietario ha accettato la richiesta, inizia la partita!\n");
+
     unsigned int round = 0;
     bool rivincita = false;
     do
     {
-        memset(griglia, 0, 9);
+        memset(griglia, 0, 9); //ad ogni iterazione la griglia viene pulita
         round++;
         unsigned short int n_giocate = 0;
         char esito = NESSUNO;
-        char e_flag = NOERROR; //il server manda 1 in caso di errore
+        char e_flag = NOERROR; //il server manda ERROR in caso di errore
         printf("\nRound %u\n", round);
+
+        //il proprietario comincia per primo nei turni dispari e viceversa
         if ((tipo == AVVERSARIO && round%2 == 1) || (tipo == PROPRIETARIO && round%2 == 0)) printf("\nIn attesa dell'avversario\n");
         do
         {
@@ -123,6 +126,7 @@ void gioca_partite(char *inbuffer, const enum tipo_giocatore tipo)
         if (e_flag == ERROR) {printf("L'avversario si è disconnesso, vittoria a tavolino\n"); break;}
         if (esito != PAREGGIO) break;
 
+        //eventuale rivincita in caso di pareggio
         if (tipo == PROPRIETARIO) rivincita = rivincita_proprietario();
         else rivincita = rivincita_avversario();
     } while (rivincita);
@@ -334,7 +338,7 @@ char controllo_esito(const unsigned short int *n_giocate)
 
 bool controllo_giocata(const int giocata)
 {
-    if (giocata == 0) return true; //resa
+    if (giocata == 0) return true; //il giocatore si è arreso
     if (giocata < 0) return false;
     if (giocata > 9) return false;
 
@@ -404,9 +408,11 @@ void inizializza_socket()
     timer.tv_sec = 300;  // Timer di 300 secondi
     timer.tv_usec = 0;
 
+    //timer per invio e ricezione
     if (setsockopt(sd, SOL_SOCKET, SO_SNDTIMEO, &timer, sizeof(timer)) < 0 || setsockopt(sd, SOL_SOCKET, SO_RCVTIMEO, &timer, sizeof(timer)) < 0)
         perror("set socket timer error"), exit(EXIT_FAILURE);
 
+    //disattiva bufferizzazione socket
     if (setsockopt(sd, IPPROTO_TCP, TCP_NODELAY, &opt, sizeof(opt)) < 0)
         perror("tcp nodelay error"), exit(EXIT_FAILURE);
 
@@ -435,6 +441,7 @@ void error_handler()
 
 void SIGUSR1_handler()
 {
+    //viene mandato dal thread principale per uccidere il thread scrittore
     pthread_exit(NULL);
 }
 

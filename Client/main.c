@@ -1,7 +1,6 @@
 #include "funzioni.h"
 
 char griglia[3][3] = {{0,0,0},{0,0,0},{0,0,0}};
-
 int sd = 0;
 
 //costanti per la disconnessione dalla partita
