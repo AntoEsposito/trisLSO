@@ -15,9 +15,8 @@ Eseguire anche "sudo chown -R proprio_nome_utente:proprio_nome_gruppo ." in caso
 (cioè scrivendo nel terminale ./avviounix.sh o ./avviowindows.ps1)
 
 Attenzione perchè nel caso di Windows e macOS, il Sistema Operativo potrebbe bloccare l'esecuzione di script provenienti da fonti anonime, in questo caso:
-1) Windows: eseguire lo script scrivendo "powershell -ExecutionPolicy Bypass -File "./avviowindows.ps1""
-2) macOS: rimuovere l'attributo di quarantena scrivendo "xattr -d com.apple.quarantine ./avviounix.sh", e poi avviare lo script (punto 5)
-
+1) Windows: eseguire lo script scrivendo nel terminale "powershell -ExecutionPolicy Bypass -File "./avviowindows.ps1""
+2) macOS: rimuovere l'attributo di quarantena scrivendo nel terminale "xattr -d com.apple.quarantine ./avviounix.sh", e poi avviare lo script (punto 5)
 
 Nel caso non si potesse comunque avviare lo script per qualsiasi problema, scrivere manualmente nel terminale "docker-compose up --scale client=n", per avviare il server
 ed un numero n di client. Quando tutti i container saranno in esecuzione, aprire un terminale per ogni client e scrivere "docker attach tris-lso-client-i", in modo da

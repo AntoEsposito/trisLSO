@@ -17,9 +17,11 @@ enum tipo_giocatore
 extern char griglia[3][3];
 extern int sd;
 
+//variabili di errore ricevute dal server
 extern const char NOERROR;
 extern const char ERROR;
 
+//costanti esito partita
 extern const char NESSUNO;
 extern const char VITTORIA;
 extern const char SCONFITTA;
