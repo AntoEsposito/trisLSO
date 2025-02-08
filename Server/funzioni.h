@@ -51,7 +51,7 @@ bool rivincita(const int sd_proprietario, const int sd_avversario);
 bool quit(const int client_sd);
 
 
-/////////////////funzioni di gestione lobby
+/////////////////funzioni di gestione lista giocatori
 
 //crea un nodo giocatore e lo aggiunge in testa
 struct nodo_giocatore* crea_giocatore_in_testa(const char *nome_giocatore, const int client_sd);
@@ -62,7 +62,7 @@ struct nodo_giocatore* trova_giocatore_da_tid(const pthread_t tid);
 //elimina un nodo giocatore dalla lista
 void cancella_giocatore(struct nodo_giocatore *nodo);
 
-/////////////////funzioni di gestione partite
+/////////////////funzioni di gestione lista partite
 
 //crea un nodo partita e lo mette in testa alla lista
 struct nodo_partita* crea_partita_in_testa(const char *nome_proprietario, const int id_proprietario);
