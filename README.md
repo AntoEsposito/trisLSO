@@ -1,4 +1,7 @@
-ISTRUZIONI PER AVVIARE IL PROGETTO:
+# ESAME "Laboratorio di Sistemi Operativi"
+# DOCENTE: Alessandra Rossi
+# Voto Finale: 30
+# ISTRUZIONI PER AVVIARE IL PROGETTO:
 
 1) Avere il docker client installato ed in esecuzione
 (Sistemi Unix-like) eseguire "sudo usermod -aG docker proprio_nome_utente" per essere sicuri che il proprio utente appartenga al gruppo docker
