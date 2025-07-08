@@ -1,4 +1,3 @@
-# ESAME "Laboratorio di Sistemi Operativi"
 # DOCENTE: Alessandra Rossi
 # Voto Finale: 30
 # ISTRUZIONI PER AVVIARE IL PROGETTO:
